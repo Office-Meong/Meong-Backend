@@ -1,0 +1,39 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+  sql:
+    init:
+      mode: never  # schema.sql은 MySQL 전용 → H2 테스트에선 JPA ddl-auto가 스키마 생성
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
+  batch:
+    job:
+      enabled: false
+    jdbc:
+      initialize-schema: embedded
+
+api:
+  kto:
+    service-key: test-service-key
+    base-url: https://apis.data.go.kr/B551011
+    mobile-os: ETC
+    mobile-app: OfficeMeong
+  gwto:
+    base-url: https://www.pettravel.kr/api
+
+kakao:
+  client-id: test-kakao-client-id
+  redirect-uri: http://localhost:8080/test/callback
+
+jwt:
+  secret: test-jwt-secret-key-minimum-32-characters!!
+  access-token-expiry: 1800000
+  refresh-token-expiry: 1209600000

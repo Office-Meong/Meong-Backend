@@ -27,6 +27,17 @@ spring:
 server:
   port: 8080
 
+# 카카오 OAuth
+kakao:
+  client-id: ${KAKAO_CLIENT_ID}
+  redirect-uri: ${KAKAO_REDIRECT_URI}
+
+# JWT
+jwt:
+  secret: ${JWT_SECRET}
+  access-token-expiry: 1800000     # 30분 (ms)
+  refresh-token-expiry: 1209600000 # 14일 (ms)
+
 # 외부 API 설정
 api:
   kto:
