@@ -1,0 +1,24 @@
+spring:
+  datasource:
+    url: ${DB_URL}              # jdbc:mysql://<RDS엔드포인트>:3306/officemeong?characterEncoding=UTF-8&serverTimezone=Asia/Seoul
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 5
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+
+  jpa:
+    hibernate:
+      ddl-auto: update          # dev에서는 스키마 자동 변경 허용 (prod에서는 Flyway로 교체)
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
+
+logging:
+  level:
+    com.officemeong: INFO

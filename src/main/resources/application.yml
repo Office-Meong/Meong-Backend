@@ -1,37 +1,33 @@
 spring:
   application:
     name: OfficeMeong
-  datasource:
-    url: jdbc:mariadb://localhost:3306/officemeong?characterEncoding=UTF-8&serverTimezone=Asia/Seoul
-    username: ${DB_USERNAME:root}
-    password: ${DB_PASSWORD:}
-    driver-class-name: org.mariadb.jdbc.Driver
-    hikari:
-      maximum-pool-size: 10
-      connection-timeout: 5000
+
+  # 공통 JPA 설정
   jpa:
-    hibernate:
-      ddl-auto: validate
-    show-sql: false
+    open-in-view: false
     properties:
       hibernate:
         format_sql: true
         default_batch_fetch_size: 100
-        dialect: org.hibernate.dialect.MariaDBDialect
+
+  # Batch 자동 실행 비활성화 (배치는 API 트리거로만 실행)
   batch:
     job:
       enabled: false
     jdbc:
       initialize-schema: always
 
-server:
-  port: 8080
+  # Servlet 인코딩
   servlet:
     encoding:
       charset: UTF-8
       enabled: true
       force: true
 
+server:
+  port: 8080
+
+# 외부 API 설정
 api:
   kto:
     service-key: ${KTO_SERVICE_KEY}
@@ -41,7 +37,7 @@ api:
   gwto:
     base-url: https://www.pettravel.kr/api
 
+# 로깅
 logging:
   level:
-    com.officemeong: DEBUG
-    org.springframework.batch: INFO
+    com.officemeong: INFO

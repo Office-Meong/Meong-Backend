@@ -1,0 +1,22 @@
+## EC2 dev 서버용 (앱만, DB는 AWS RDS)
+## EC2에서 사용: docker-compose -f docker-compose.dev.yml up -d
+## .env 파일을 같은 디렉토리에 두거나 환경변수 주입
+
+services:
+  app:
+    image: ${ECR_IMAGE}
+    container_name: officemeong-app
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: dev
+      DB_URL: ${DB_URL}
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+      KTO_SERVICE_KEY: ${KTO_SERVICE_KEY}
+    restart: always
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "3"
