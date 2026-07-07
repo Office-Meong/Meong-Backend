@@ -1,0 +1,53 @@
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version '3.3.4'
+    id 'io.spring.dependency-management' version '1.1.6'
+}
+
+group = 'com.officemeong'
+version = '0.0.1-SNAPSHOT'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(23)
+    }
+}
+
+configurations {
+    compileOnly {
+        extendsFrom annotationProcessor
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    // Web
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    // JPA
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    // Batch (데이터 수집 배치)
+    implementation 'org.springframework.boot:spring-boot-starter-batch'
+    // Validation
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+    // WebClient (외부 API 호출)
+    implementation 'org.springframework.boot:spring-boot-starter-webflux'
+
+    // DB
+    runtimeOnly 'org.mariadb.jdbc:mariadb-java-client'
+
+    // Lombok
+    compileOnly 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
+
+    // Test
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.springframework.batch:spring-batch-test'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+}

@@ -1,0 +1,19 @@
+spring:
+  datasource:
+    url: jdbc:mariadb://localhost:3306/officemeong?characterEncoding=UTF-8&serverTimezone=Asia/Seoul
+    username: root
+    password:
+  jpa:
+    hibernate:
+      ddl-auto: create
+    show-sql: true
+
+api:
+  kto:
+    service-key: M64X2OMhaFi2NNTIuGL9I+s6ouH/435LFlcTRL7cndKCSUb5nnpgYi6f4Is8kxj7jUdOXB9CpRquXp6D4aV8Gw==
+
+logging:
+  level:
+    com.officemeong: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
