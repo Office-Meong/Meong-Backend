@@ -4,7 +4,11 @@ import com.officemeong.domain.place.entity.Place;
 import com.officemeong.domain.place.enums.PlaceType;
 import com.officemeong.domain.place.enums.Region;
 import com.officemeong.domain.place.enums.SourceType;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 import java.util.Optional;
@@ -18,4 +22,45 @@ public interface PlaceRepository extends JpaRepository<Place, Long> {
     List<Place> findByRegionAndPlaceType(Region region, PlaceType placeType);
 
     List<Place> findByRegion(Region region);
+
+    // 목록 조회 - 점수 내림차순
+    @Query(value = "SELECT p.id FROM Place p LEFT JOIN p.score s " +
+                   "WHERE (:region IS NULL OR p.region = :region) " +
+                   "AND (:placeType IS NULL OR p.placeType = :placeType) " +
+                   "ORDER BY COALESCE(s.totalScore, 0) DESC",
+           countQuery = "SELECT COUNT(p) FROM Place p " +
+                        "WHERE (:region IS NULL OR p.region = :region) " +
+                        "AND (:placeType IS NULL OR p.placeType = :placeType)")
+    Page<Long> findIdsByFilterOrderByScore(@Param("region") Region region,
+                                           @Param("placeType") PlaceType placeType,
+                                           Pageable pageable);
+
+    // 목록 조회 - 최신 동기화 순
+    @Query(value = "SELECT p.id FROM Place p " +
+                   "WHERE (:region IS NULL OR p.region = :region) " +
+                   "AND (:placeType IS NULL OR p.placeType = :placeType) " +
+                   "ORDER BY p.lastSyncedAt DESC",
+           countQuery = "SELECT COUNT(p) FROM Place p " +
+                        "WHERE (:region IS NULL OR p.region = :region) " +
+                        "AND (:placeType IS NULL OR p.placeType = :placeType)")
+    Page<Long> findIdsByFilterOrderByLatest(@Param("region") Region region,
+                                            @Param("placeType") PlaceType placeType,
+                                            Pageable pageable);
+
+    // ID 목록으로 상세 fetch (score + petCondition 포함)
+    @Query("SELECT DISTINCT p FROM Place p " +
+           "LEFT JOIN FETCH p.score " +
+           "LEFT JOIN FETCH p.petCondition " +
+           "WHERE p.id IN :ids")
+    List<Place> findByIdsWithSummaryDetails(@Param("ids") List<Long> ids);
+
+    // 단건 상세 fetch (모든 연관관계 포함)
+    @Query("SELECT DISTINCT p FROM Place p " +
+           "LEFT JOIN FETCH p.score " +
+           "LEFT JOIN FETCH p.petCondition " +
+           "LEFT JOIN FETCH p.operation " +
+           "LEFT JOIN FETCH p.accessibility " +
+           "LEFT JOIN FETCH p.images " +
+           "WHERE p.id = :id")
+    Optional<Place> findByIdWithAllDetails(@Param("id") Long id);
 }

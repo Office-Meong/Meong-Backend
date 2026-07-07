@@ -16,11 +16,17 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.util.UriComponentsBuilder;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.NodeList;
+import org.xml.sax.InputSource;
 
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import java.io.StringReader;
 import java.math.BigDecimal;
 import java.net.URI;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 @Slf4j
@@ -47,24 +53,19 @@ public class DurunubiCollectTasklet implements Tasklet {
             Region region = resolveRegion(course.getSigun());
             if (region == null) continue;
 
-            // GPX에서 시작점 좌표 추출 (현재는 GPX path만 저장, 실제 구현 시 GPX 파싱 필요)
-            BigDecimal startLat = extractStartLatFromGpx(course.getGpxpath());
-            BigDecimal startLon = extractStartLonFromGpx(course.getGpxpath());
-            if (startLat == null || startLon == null) continue;
+            BigDecimal[] coords = fetchGpxStartCoords(course.getGpxpath());
+            if (coords == null) continue;
 
             walkCourseRepository.findBySourceId(course.getCrsIdx()).ifPresentOrElse(
                     existing -> log.debug("두루누비 코스 이미 존재: {}", course.getCrsIdx()),
-                    () -> {
-                        BigDecimal distanceKm = parseDistance(course.getCrsDstnc());
-                        walkCourseRepository.save(WalkCourse.builder()
-                                .sourceId(course.getCrsIdx())
-                                .region(region)
-                                .courseName(course.getCrsKorNm())
-                                .startLatitude(startLat)
-                                .startLongitude(startLon)
-                                .distanceKm(distanceKm)
-                                .build());
-                    }
+                    () -> walkCourseRepository.save(WalkCourse.builder()
+                            .sourceId(course.getCrsIdx())
+                            .region(region)
+                            .courseName(course.getCrsKorNm())
+                            .startLatitude(coords[0])
+                            .startLongitude(coords[1])
+                            .distanceKm(parseDistance(course.getCrsDstnc()))
+                            .build())
             );
             saved++;
         }
@@ -98,7 +99,7 @@ public class DurunubiCollectTasklet implements Tasklet {
                 List<DurunubiCourseItem> items = new ArrayList<>();
                 if (itemNode.isArray()) {
                     for (JsonNode n : itemNode) items.add(objectMapper.treeToValue(n, DurunubiCourseItem.class));
-                } else if (!itemNode.isMissingNode()) {
+                } else if (!itemNode.isMissingNode() && !itemNode.isNull()) {
                     items.add(objectMapper.treeToValue(itemNode, DurunubiCourseItem.class));
                 }
 
@@ -114,26 +115,50 @@ public class DurunubiCollectTasklet implements Tasklet {
         return result;
     }
 
+    /**
+     * GPX 파일 URL을 다운로드하고 첫 번째 trkpt 좌표를 반환.
+     * [0]=latitude, [1]=longitude. 파싱 실패 시 null 반환.
+     */
+    private BigDecimal[] fetchGpxStartCoords(String gpxPath) {
+        if (gpxPath == null || gpxPath.isBlank()) return null;
+
+        try {
+            String content = ktoWebClient.get()
+                    .uri(URI.create(gpxPath))
+                    .retrieve()
+                    .bodyToMono(String.class)
+                    .block();
+
+            if (content == null || content.isBlank()) return null;
+
+            DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+            factory.setNamespaceAware(true);
+            DocumentBuilder docBuilder = factory.newDocumentBuilder();
+            Document doc = docBuilder.parse(new InputSource(new StringReader(content)));
+
+            NodeList trkpts = doc.getElementsByTagNameNS("*", "trkpt");
+            if (trkpts.getLength() == 0) {
+                trkpts = doc.getElementsByTagName("trkpt");
+            }
+            if (trkpts.getLength() == 0) return null;
+
+            Element first = (Element) trkpts.item(0);
+            String lat = first.getAttribute("lat");
+            String lon = first.getAttribute("lon");
+            if (lat.isBlank() || lon.isBlank()) return null;
+
+            return new BigDecimal[]{new BigDecimal(lat), new BigDecimal(lon)};
+        } catch (Exception e) {
+            log.warn("GPX 파싱 실패 - {}: {}", gpxPath, e.getMessage());
+            return null;
+        }
+    }
+
     private Region resolveRegion(String sigun) {
         if (sigun == null) return null;
         for (Region region : Region.values()) {
             if (sigun.equals(region.getDurunubiSigun())) return region;
         }
-        return null;
-    }
-
-    /**
-     * GPX URL에서 시작점 좌표 추출.
-     * 실제 구현: GPX 파일 다운로드 → XML 파싱 → 첫 번째 trkpt 좌표 추출
-     * 현재는 null 반환 (추후 구현)
-     */
-    private BigDecimal extractStartLatFromGpx(String gpxPath) {
-        // TODO: GPX 파일 파싱 구현
-        return null;
-    }
-
-    private BigDecimal extractStartLonFromGpx(String gpxPath) {
-        // TODO: GPX 파일 파싱 구현
         return null;
     }
 

@@ -1,0 +1,38 @@
+package com.officemeong.common.exception;
+
+import com.officemeong.common.dto.ApiResponse;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+
+import java.util.NoSuchElementException;
+
+@Slf4j
+@RestControllerAdvice
+public class GlobalExceptionHandler {
+
+    @ExceptionHandler(NoSuchElementException.class)
+    public ResponseEntity<ApiResponse<Void>> handleNotFound(NoSuchElementException e) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiResponse.error(e.getMessage()));
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ApiResponse<Void>> handleBadRequest(IllegalArgumentException e) {
+        return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+    }
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ApiResponse<Void>> handleTypeMismatch(MethodArgumentTypeMismatchException e) {
+        return ResponseEntity.badRequest().body(ApiResponse.error("잘못된 파라미터: " + e.getName()));
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ApiResponse<Void>> handleException(Exception e) {
+        log.error("Unhandled exception", e);
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(ApiResponse.error("서버 오류가 발생했습니다."));
+    }
+}

@@ -33,11 +33,12 @@ public class GwtoApiClient {
         int page = 1;
 
         while (true) {
+            final int currentPage = page;
             try {
                 String raw = gwtoWebClient.get()
                         .uri(u -> u.path("/listPart.do")
                                 .queryParam("partCode", partCode)
-                                .queryParam("page", page)
+                                .queryParam("page", currentPage)
                                 .queryParam("pageBlock", PAGE_SIZE)
                                 .build())
                         .retrieve()

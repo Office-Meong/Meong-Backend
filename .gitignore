@@ -19,6 +19,10 @@ HELP.md
 .env.dev
 .env.prod
 *-secret.yml
+application-local.yml
+
+# 문서 (로컬 전용)
+docs/
 
 # OS
 .DS_Store
