@@ -48,6 +48,15 @@ api:
   gwto:
     base-url: https://www.pettravel.kr/api
 
+# Swagger UI
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    tags-sorter: alpha
+    operations-sorter: alpha
+  api-docs:
+    path: /v3/api-docs
+
 # 로깅
 logging:
   level:
