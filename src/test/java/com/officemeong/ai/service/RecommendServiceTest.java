@@ -1,7 +1,7 @@
 package com.officemeong.ai.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.officemeong.ai.client.ClaudeClient;
+import com.officemeong.ai.client.OpenAiClient;
 import com.officemeong.ai.dto.PlaceRecommendResponse;
 import com.officemeong.domain.dog.entity.Dog;
 import com.officemeong.domain.dog.repository.DogRepository;
@@ -41,7 +41,7 @@ class RecommendServiceTest {
     @Mock DogRepository dogRepository;
     @Mock FavoriteRepository favoriteRepository;
     @Mock ReviewRepository reviewRepository;
-    @Mock ClaudeClient claudeClient;
+    @Mock OpenAiClient openAiClient;
     @Spy ObjectMapper objectMapper = new ObjectMapper();
 
     @InjectMocks RecommendService recommendService;
@@ -71,7 +71,7 @@ class RecommendServiceTest {
                     {"placeId":20,"reason":"숙소B 추천 이유"},
                     {"placeId":30,"reason":"코워킹C 추천 이유"}
                 ]}""";
-        when(claudeClient.call(any(), any())).thenReturn(claudeJson);
+        when(openAiClient.call(any(), any())).thenReturn(claudeJson);
 
         List<PlaceRecommendResponse> result = recommendService.recommend(Region.GANGNEUNG, null, 1L);
 
@@ -83,7 +83,7 @@ class RecommendServiceTest {
     @Test
     @DisplayName("Claude 실패 - 점수 기반 폴백 3개 반환")
     void recommend_Claude실패_폴백() {
-        when(claudeClient.call(any(), any())).thenThrow(new RuntimeException("API 오류"));
+        when(openAiClient.call(any(), any())).thenThrow(new RuntimeException("API 오류"));
 
         List<PlaceRecommendResponse> result = recommendService.recommend(Region.GANGNEUNG, null, 1L);
 
@@ -100,7 +100,7 @@ class RecommendServiceTest {
         List<PlaceRecommendResponse> result = recommendService.recommend(Region.WONJU, null, 1L);
 
         assertThat(result).isEmpty();
-        verifyNoInteractions(claudeClient);
+        verifyNoInteractions(openAiClient);
     }
 
     @Test
@@ -120,12 +120,12 @@ class RecommendServiceTest {
                     {"placeId":20,"reason":"숙소 추천"},
                     {"placeId":30,"reason":"업무 공간"}
                 ]}""";
-        when(claudeClient.call(any(), any())).thenReturn(claudeJson);
+        when(openAiClient.call(any(), any())).thenReturn(claudeJson);
 
         List<PlaceRecommendResponse> result = recommendService.recommend(Region.GANGNEUNG, 7L, 1L);
 
         assertThat(result).hasSize(3);
-        verify(claudeClient).call(any(), contains("콩이"));
+        verify(openAiClient).call(any(), contains("콩이"));
     }
 
     @Test
@@ -149,7 +149,7 @@ class RecommendServiceTest {
                     {"placeId":30,"reason":"이유3"}
                 ]}
                 ```""";
-        when(claudeClient.call(any(), any())).thenReturn(claudeMarkdown);
+        when(openAiClient.call(any(), any())).thenReturn(claudeMarkdown);
 
         List<PlaceRecommendResponse> result = recommendService.recommend(Region.GANGNEUNG, null, 1L);
 
@@ -170,7 +170,7 @@ class RecommendServiceTest {
                     {"placeId":20,"reason":"이유2"},
                     {"placeId":30,"reason":"이유3"}
                 ]}""";
-        when(claudeClient.call(any(), contains("즐겨찾기장소"))).thenReturn(claudeJson);
+        when(openAiClient.call(any(), contains("즐겨찾기장소"))).thenReturn(claudeJson);
 
         List<PlaceRecommendResponse> result = recommendService.recommend(Region.GANGNEUNG, null, 1L);
 

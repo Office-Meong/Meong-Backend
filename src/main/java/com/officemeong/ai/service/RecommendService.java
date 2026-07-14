@@ -2,7 +2,7 @@ package com.officemeong.ai.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.officemeong.ai.client.ClaudeClient;
+import com.officemeong.ai.client.OpenAiClient;
 import com.officemeong.ai.dto.PlaceRecommendResponse;
 import com.officemeong.domain.dog.entity.Dog;
 import com.officemeong.domain.dog.repository.DogRepository;
@@ -42,7 +42,7 @@ public class RecommendService {
     private final DogRepository dogRepository;
     private final FavoriteRepository favoriteRepository;
     private final ReviewRepository reviewRepository;
-    private final ClaudeClient claudeClient;
+    private final OpenAiClient openAiClient;
     private final ObjectMapper objectMapper;
 
     public List<PlaceRecommendResponse> recommend(Region region, Long dogId, Long userId) {
@@ -74,7 +74,7 @@ public class RecommendService {
         try {
             String systemPrompt = buildSystemPrompt();
             String userPrompt = buildUserPrompt(region, dog, favorites, reviews, candidates);
-            String rawResponse = claudeClient.call(systemPrompt, userPrompt);
+            String rawResponse = openAiClient.call(systemPrompt, userPrompt);
             String json = stripMarkdownCodeBlock(rawResponse);
             return parseRecommendations(json, candidateMap);
         } catch (NoSuchElementException e) {
