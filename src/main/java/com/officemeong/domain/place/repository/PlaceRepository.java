@@ -23,6 +23,13 @@ public interface PlaceRepository extends JpaRepository<Place, Long> {
 
     List<Place> findByRegion(Region region);
 
+    // 코스 생성용: 지역+유형으로 장소를 펫워크지수 내림차순 조회 (petCondition fetch join)
+    @Query("SELECT DISTINCT p FROM Place p LEFT JOIN FETCH p.score s LEFT JOIN FETCH p.petCondition " +
+           "WHERE p.region = :region AND p.placeType = :placeType " +
+           "ORDER BY COALESCE(s.totalScore, 0) DESC")
+    List<Place> findByRegionAndPlaceTypeOrderByScore(@Param("region") Region region,
+                                                     @Param("placeType") PlaceType placeType);
+
     // 목록 조회 - 점수 내림차순
     @Query(value = "SELECT p.id FROM Place p LEFT JOIN p.score s " +
                    "WHERE (:region IS NULL OR p.region = :region) " +

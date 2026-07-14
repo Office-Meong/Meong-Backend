@@ -1,7 +1,7 @@
 package com.officemeong.domain.walk.service;
 
-import com.officemeong.domain.dog.entity.Dog;
 import com.officemeong.domain.dog.repository.DogRepository;
+import com.officemeong.domain.dog.entity.Dog;
 import com.officemeong.domain.walk.dto.CourseRecommendResponse;
 import com.officemeong.domain.walk.entity.WalkCourse;
 import com.officemeong.domain.walk.repository.WalkCourseRepository;
@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.Comparator;
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -17,7 +18,7 @@ import java.util.NoSuchElementException;
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
-public class CourseService {
+public class WalkCourseService {
 
     private static final double SEARCH_RADIUS_KM = 30.0;
     private static final int MAX_RESULTS = 10;
@@ -42,32 +43,23 @@ public class CourseService {
                         || cd.course.getDistanceKm().doubleValue() <= maxCourseKm)
                 .sorted(Comparator.comparingDouble(cd -> cd.distance))
                 .limit(MAX_RESULTS)
-                .map(cd -> CourseRecommendResponse.from(cd.course, cd.distance))
+                .map(cd -> CourseRecommendResponse.from(cd.course,
+                        BigDecimal.valueOf(cd.distance).setScale(2, RoundingMode.HALF_UP).doubleValue()))
                 .toList();
     }
 
     private Double resolveMaxCourseKm(Long userId, Long dogId) {
-        if (dogId == null) {
-            return null;
-        }
+        if (dogId == null) return null;
         Dog dog = dogRepository.findByIdAndUserId(dogId, userId)
                 .orElseThrow(() -> new NoSuchElementException("반려견을 찾을 수 없습니다. id=" + dogId));
-
         BigDecimal weight = dog.getWeightKg();
-        if (weight == null) {
-            return null;
-        }
+        if (weight == null) return null;
         double kg = weight.doubleValue();
-        if (kg < 10.0) {
-            return 3.0;
-        }
-        if (kg < 25.0) {
-            return 6.0;
-        }
+        if (kg < 10.0) return 3.0;
+        if (kg < 25.0) return 6.0;
         return null;
     }
 
-    // Haversine 공식: 두 위경도 좌표 간 거리 (km)
     private double haversineKm(double lat1, double lng1, double lat2, double lng2) {
         final double R = 6371.0;
         double dLat = Math.toRadians(lat2 - lat1);

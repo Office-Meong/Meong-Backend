@@ -1,10 +1,15 @@
 package com.officemeong.api.course;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.officemeong.common.config.SecurityConfig;
 import com.officemeong.common.security.JwtAuthenticationFilter;
+import com.officemeong.domain.course.dto.CourseCreateRequest;
+import com.officemeong.domain.course.dto.CourseItemResponse;
+import com.officemeong.domain.course.dto.CourseResponse;
+import com.officemeong.domain.course.enums.WorkFocusLevel;
+import com.officemeong.domain.course.service.CourseService;
+import com.officemeong.domain.place.enums.PlaceType;
 import com.officemeong.domain.place.enums.Region;
-import com.officemeong.domain.walk.dto.CourseRecommendResponse;
-import com.officemeong.domain.walk.service.CourseService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,6 +21,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.FilterType;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -25,13 +31,16 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
 
-import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.NoSuchElementException;
 
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(
@@ -51,98 +60,127 @@ class CourseControllerTest {
     static class TestSecurityConfig {
         @Bean
         public SecurityFilterChain testFilterChain(HttpSecurity http) throws Exception {
-            return http
-                    .csrf(AbstractHttpConfigurer::disable)
-                    .authorizeHttpRequests(a -> a.anyRequest().permitAll())
-                    .build();
+            return http.csrf(AbstractHttpConfigurer::disable)
+                    .authorizeHttpRequests(a -> a.anyRequest().permitAll()).build();
         }
     }
 
     @Autowired MockMvc mockMvc;
+    @Autowired ObjectMapper objectMapper;
     @MockBean CourseService courseService;
 
     private static RequestPostProcessor authAs(Long userId) {
         return SecurityMockMvcRequestPostProcessors.authentication(
-                new UsernamePasswordAuthenticationToken(userId, null, Collections.emptyList())
-        );
+                new UsernamePasswordAuthenticationToken(userId, null, Collections.emptyList()));
+    }
+
+    private CourseResponse sampleCourse() {
+        CourseItemResponse item = CourseItemResponse.builder()
+                .id(1L).dayNumber(1).visitOrder(1).slotLabel("아침")
+                .placeId(10L).placeName("강릉 카페").placeType(PlaceType.FOOD)
+                .startTime(LocalTime.of(8, 0)).endTime(LocalTime.of(9, 0))
+                .build();
+        return CourseResponse.builder()
+                .id(1L).region(Region.GANGNEUNG)
+                .startDate(LocalDate.of(2026, 8, 1)).endDate(LocalDate.of(2026, 8, 1))
+                .workStartTime(LocalTime.of(9, 0)).workEndTime(LocalTime.of(18, 0))
+                .workFocusLevel(WorkFocusLevel.MEDIUM).totalDays(1)
+                .dayItems(Map.of(1, List.of(item)))
+                .build();
     }
 
     @Test
-    @DisplayName("코스 추천 조회 - dogId 없이 200 OK")
-    void recommend_dogId없음_200() throws Exception {
-        CourseRecommendResponse resp = CourseRecommendResponse.builder()
-                .id(1L).courseName("경포 해변 산책로").region(Region.GANGNEUNG)
-                .distanceKm(BigDecimal.valueOf(2.5))
-                .startLatitude(BigDecimal.valueOf(37.797))
-                .startLongitude(BigDecimal.valueOf(128.901))
-                .distanceFromUserKm(0.15)
-                .build();
-        when(courseService.recommend(37.796, 128.900, 1L, null)).thenReturn(List.of(resp));
+    @DisplayName("코스 생성 - 200 OK")
+    void createCourse_200() throws Exception {
+        when(courseService.createCourse(eq(1L), any(CourseCreateRequest.class)))
+                .thenReturn(sampleCourse());
 
-        mockMvc.perform(get("/api/v1/courses")
-                        .param("lat", "37.796")
-                        .param("lng", "128.900")
+        String body = """
+                {
+                  "region": "GANGNEUNG",
+                  "startDate": "2026-08-01",
+                  "endDate": "2026-08-01",
+                  "workStartTime": "09:00",
+                  "workEndTime": "18:00",
+                  "workFocusLevel": "MEDIUM"
+                }
+                """;
+
+        mockMvc.perform(post("/api/v1/courses")
+                        .contentType(MediaType.APPLICATION_JSON).content(body)
                         .with(authAs(1L)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.data[0].courseName").value("경포 해변 산책로"))
-                .andExpect(jsonPath("$.data[0].distanceFromUserKm").value(0.15));
+                .andExpect(jsonPath("$.data.region").value("GANGNEUNG"))
+                .andExpect(jsonPath("$.data.dayItems.1[0].slotLabel").value("아침"));
     }
 
     @Test
-    @DisplayName("코스 추천 조회 - dogId 포함 200 OK")
-    void recommend_dogId포함_200() throws Exception {
-        CourseRecommendResponse resp = CourseRecommendResponse.builder()
-                .id(2L).courseName("춘천 호반 산책로").region(Region.CHUNCHEON)
-                .distanceKm(BigDecimal.valueOf(1.8))
-                .startLatitude(BigDecimal.valueOf(37.880))
-                .startLongitude(BigDecimal.valueOf(127.730))
-                .distanceFromUserKm(0.30)
-                .build();
-        when(courseService.recommend(37.796, 128.900, 1L, 5L)).thenReturn(List.of(resp));
+    @DisplayName("코스 생성 - region 누락 400 Bad Request")
+    void createCourse_region누락_400() throws Exception {
+        String body = """
+                {
+                  "startDate": "2026-08-01",
+                  "endDate": "2026-08-01",
+                  "workStartTime": "09:00",
+                  "workEndTime": "18:00",
+                  "workFocusLevel": "MEDIUM"
+                }
+                """;
 
-        mockMvc.perform(get("/api/v1/courses")
-                        .param("lat", "37.796")
-                        .param("lng", "128.900")
-                        .param("dogId", "5")
+        mockMvc.perform(post("/api/v1/courses")
+                        .contentType(MediaType.APPLICATION_JSON).content(body)
                         .with(authAs(1L)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("내 코스 목록 조회 - 200 OK")
+    void getMyCourses_200() throws Exception {
+        when(courseService.getMyCourses(1L)).thenReturn(List.of(sampleCourse()));
+
+        mockMvc.perform(get("/api/v1/courses").with(authAs(1L)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data[0].id").value(2));
+                .andExpect(jsonPath("$.data[0].id").value(1));
     }
 
     @Test
-    @DisplayName("코스 없을 때 빈 배열 반환")
-    void recommend_빈_결과() throws Exception {
-        when(courseService.recommend(37.796, 128.900, 1L, null)).thenReturn(List.of());
+    @DisplayName("코스 상세 조회 - 200 OK")
+    void getCourse_200() throws Exception {
+        when(courseService.getCourse(1L, 1L)).thenReturn(sampleCourse());
 
-        mockMvc.perform(get("/api/v1/courses")
-                        .param("lat", "37.796")
-                        .param("lng", "128.900")
-                        .with(authAs(1L)))
+        mockMvc.perform(get("/api/v1/courses/1").with(authAs(1L)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data").isArray())
-                .andExpect(jsonPath("$.data").isEmpty());
+                .andExpect(jsonPath("$.data.totalDays").value(1));
     }
 
     @Test
-    @DisplayName("존재하지 않는 반려견 ID - 404 반환")
-    void recommend_없는_반려견_404() throws Exception {
-        when(courseService.recommend(37.796, 128.900, 1L, 99L))
-                .thenThrow(new NoSuchElementException("반려견을 찾을 수 없습니다. id=99"));
+    @DisplayName("코스 상세 조회 - 없는 코스 404")
+    void getCourse_없음_404() throws Exception {
+        when(courseService.getCourse(1L, 99L))
+                .thenThrow(new NoSuchElementException("코스를 찾을 수 없습니다. id=99"));
 
-        mockMvc.perform(get("/api/v1/courses")
-                        .param("lat", "37.796")
-                        .param("lng", "128.900")
-                        .param("dogId", "99")
-                        .with(authAs(1L)))
+        mockMvc.perform(get("/api/v1/courses/99").with(authAs(1L)))
                 .andExpect(status().isNotFound());
     }
 
     @Test
-    @DisplayName("lat/lng 파라미터 누락 - 400 Bad Request")
-    void recommend_파라미터_누락_400() throws Exception {
-        mockMvc.perform(get("/api/v1/courses")
-                        .with(authAs(1L)))
-                .andExpect(status().isBadRequest());
+    @DisplayName("코스 삭제 - 200 OK")
+    void deleteCourse_200() throws Exception {
+        doNothing().when(courseService).deleteCourse(1L, 1L);
+
+        mockMvc.perform(delete("/api/v1/courses/1").with(authAs(1L)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true));
+    }
+
+    @Test
+    @DisplayName("대체 장소 추천 - 200 OK")
+    void getAlternatives_200() throws Exception {
+        when(courseService.getAlternatives(1L, 1L, 3L)).thenReturn(List.of());
+
+        mockMvc.perform(get("/api/v1/courses/1/items/3/alternatives").with(authAs(1L)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data").isArray());
     }
 }
