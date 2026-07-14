@@ -16,4 +16,7 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
     Optional<Review> findByIdAndUserId(Long id, Long userId);
 
     boolean existsByUserIdAndPlaceId(Long userId, Long placeId);
+
+    @Query("SELECT r FROM Review r JOIN FETCH r.place WHERE r.user.id = :userId ORDER BY r.createdAt DESC")
+    List<Review> findByUserIdWithPlace(@Param("userId") Long userId);
 }

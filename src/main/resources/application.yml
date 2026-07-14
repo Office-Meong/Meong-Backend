@@ -38,6 +38,10 @@ jwt:
   access-token-expiry: 1800000     # 30분 (ms)
   refresh-token-expiry: 1209600000 # 14일 (ms)
 
+# Anthropic Claude API
+anthropic:
+  api-key: ${ANTHROPIC_API_KEY:}
+
 # 외부 API 설정
 api:
   kto:
