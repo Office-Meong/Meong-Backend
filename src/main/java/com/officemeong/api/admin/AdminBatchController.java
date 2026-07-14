@@ -30,6 +30,9 @@ public class AdminBatchController {
     @Qualifier("durunubiCollectJob")
     private final Job durunubiCollectJob;
 
+    @Qualifier("scoreCalculateJob")
+    private final Job scoreCalculateJob;
+
     @PostMapping("/collect")
     public ResponseEntity<ApiResponse<String>> runPlaceCollect() {
         return runJob(placeCollectJob, "placeCollect");
@@ -43,6 +46,11 @@ public class AdminBatchController {
     @PostMapping("/durunubi")
     public ResponseEntity<ApiResponse<String>> runDurunubi() {
         return runJob(durunubiCollectJob, "durunubi");
+    }
+
+    @PostMapping("/score")
+    public ResponseEntity<ApiResponse<String>> runScoreCalculate() {
+        return runJob(scoreCalculateJob, "score");
     }
 
     private ResponseEntity<ApiResponse<String>> runJob(Job job, String name) {

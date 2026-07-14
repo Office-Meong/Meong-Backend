@@ -5,9 +5,11 @@ import com.officemeong.common.dto.PageResponse;
 import com.officemeong.common.security.JwtAuthenticationFilter;
 import com.officemeong.domain.place.dto.PlaceDetailResponse;
 import com.officemeong.domain.place.dto.PlaceSummaryResponse;
+import com.officemeong.domain.place.enums.CongestionLevel;
 import com.officemeong.domain.place.enums.PlaceType;
 import com.officemeong.domain.place.enums.Region;
 import com.officemeong.domain.place.service.PlaceService;
+import com.officemeong.domain.walk.dto.NearbyWalkCourseResponse;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,6 +21,7 @@ import org.springframework.context.annotation.FilterType;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.NoSuchElementException;
 
@@ -49,7 +52,7 @@ class PlaceControllerTest {
                 .id(1L).name("테스트 카페").region(Region.GANGNEUNG)
                 .placeType(PlaceType.WORK_PLACE).totalScore(70).build();
 
-        when(placeService.getPlaces(any(), any(), any(), anyInt(), anyInt()))
+        when(placeService.getPlaces(any(), any(), any(), any(), anyInt(), anyInt()))
                 .thenReturn(PageResponse.of(List.of(summary), 0, 20, 1));
 
         mockMvc.perform(get("/api/v1/places")
@@ -64,7 +67,7 @@ class PlaceControllerTest {
     @DisplayName("지역 필터 적용 장소 목록 조회 - 200 OK")
     void getPlaces_지역_필터_200_반환() throws Exception {
         when(placeService.getPlaces(eq(Region.GANGNEUNG), isNull(),
-                eq(PlaceService.SortType.SCORE), eq(0), eq(20)))
+                eq(PlaceService.SortType.SCORE), isNull(), eq(0), eq(20)))
                 .thenReturn(PageResponse.of(List.of(), 0, 20, 0));
 
         mockMvc.perform(get("/api/v1/places")
@@ -77,7 +80,7 @@ class PlaceControllerTest {
     @DisplayName("타입 필터 + 최신순 정렬 장소 목록 조회 - 200 OK")
     void getPlaces_타입_필터_최신순_200_반환() throws Exception {
         when(placeService.getPlaces(isNull(), eq(PlaceType.STAY),
-                eq(PlaceService.SortType.LATEST), eq(0), eq(10)))
+                eq(PlaceService.SortType.LATEST), isNull(), eq(0), eq(10)))
                 .thenReturn(PageResponse.of(List.of(), 0, 10, 0));
 
         mockMvc.perform(get("/api/v1/places")
@@ -122,5 +125,58 @@ class PlaceControllerTest {
         mockMvc.perform(get("/api/v1/places")
                         .param("sort", "INVALID_SORT"))
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("혼잡도 필터 RELAXED 적용 장소 목록 조회 - 200 OK")
+    void getPlaces_혼잡도_RELAXED_필터_200_반환() throws Exception {
+        when(placeService.getPlaces(isNull(), isNull(),
+                eq(PlaceService.SortType.SCORE), eq(CongestionLevel.RELAXED), eq(0), eq(20)))
+                .thenReturn(PageResponse.of(List.of(), 0, 20, 0));
+
+        mockMvc.perform(get("/api/v1/places")
+                        .param("congestion", "RELAXED"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.content").isArray());
+    }
+
+    @Test
+    @DisplayName("장소 주변 산책 코스 조회 - 200 OK")
+    void getNearbyWalkCourses_200() throws Exception {
+        NearbyWalkCourseResponse resp = NearbyWalkCourseResponse.builder()
+                .id(1L).courseName("경포 해변 산책로").region(Region.GANGNEUNG)
+                .distanceKm(BigDecimal.valueOf(2.5))
+                .startLatitude(BigDecimal.valueOf(37.797))
+                .startLongitude(BigDecimal.valueOf(128.901))
+                .distanceFromPlaceKm(0.8)
+                .build();
+        when(placeService.getNearbyWalkCourses(1L)).thenReturn(List.of(resp));
+
+        mockMvc.perform(get("/api/v1/places/1/walk-courses"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data[0].courseName").value("경포 해변 산책로"))
+                .andExpect(jsonPath("$.data[0].distanceFromPlaceKm").value(0.8));
+    }
+
+    @Test
+    @DisplayName("장소 주변 산책 코스 조회 - 존재하지 않는 장소 404")
+    void getNearbyWalkCourses_없는장소_404() throws Exception {
+        when(placeService.getNearbyWalkCourses(999L))
+                .thenThrow(new NoSuchElementException("장소를 찾을 수 없습니다: 999"));
+
+        mockMvc.perform(get("/api/v1/places/999/walk-courses"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @DisplayName("장소 주변 산책 코스 없을 때 빈 배열 반환")
+    void getNearbyWalkCourses_빈결과() throws Exception {
+        when(placeService.getNearbyWalkCourses(1L)).thenReturn(List.of());
+
+        mockMvc.perform(get("/api/v1/places/1/walk-courses"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data").isArray())
+                .andExpect(jsonPath("$.data").isEmpty());
     }
 }

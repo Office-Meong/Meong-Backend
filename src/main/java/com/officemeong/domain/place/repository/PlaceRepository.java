@@ -54,6 +54,42 @@ public interface PlaceRepository extends JpaRepository<Place, Long> {
                                             @Param("placeType") PlaceType placeType,
                                             Pageable pageable);
 
+    // 목록 조회 - 점수 내림차순 + 혼잡도 필터
+    @Query(value = "SELECT p.id FROM Place p LEFT JOIN p.score s " +
+                   "WHERE (:region IS NULL OR p.region = :region) " +
+                   "AND (:placeType IS NULL OR p.placeType = :placeType) " +
+                   "AND (:minCongestionScore IS NULL OR s.congestionScore >= :minCongestionScore) " +
+                   "AND (:maxCongestionScore IS NULL OR s.congestionScore <= :maxCongestionScore) " +
+                   "ORDER BY COALESCE(s.totalScore, 0) DESC",
+           countQuery = "SELECT COUNT(p) FROM Place p LEFT JOIN p.score s " +
+                        "WHERE (:region IS NULL OR p.region = :region) " +
+                        "AND (:placeType IS NULL OR p.placeType = :placeType) " +
+                        "AND (:minCongestionScore IS NULL OR s.congestionScore >= :minCongestionScore) " +
+                        "AND (:maxCongestionScore IS NULL OR s.congestionScore <= :maxCongestionScore)")
+    Page<Long> findIdsByFilterWithCongestionOrderByScore(@Param("region") Region region,
+                                                         @Param("placeType") PlaceType placeType,
+                                                         @Param("minCongestionScore") Integer minCongestionScore,
+                                                         @Param("maxCongestionScore") Integer maxCongestionScore,
+                                                         Pageable pageable);
+
+    // 목록 조회 - 최신 동기화 순 + 혼잡도 필터
+    @Query(value = "SELECT p.id FROM Place p LEFT JOIN p.score s " +
+                   "WHERE (:region IS NULL OR p.region = :region) " +
+                   "AND (:placeType IS NULL OR p.placeType = :placeType) " +
+                   "AND (:minCongestionScore IS NULL OR s.congestionScore >= :minCongestionScore) " +
+                   "AND (:maxCongestionScore IS NULL OR s.congestionScore <= :maxCongestionScore) " +
+                   "ORDER BY p.lastSyncedAt DESC",
+           countQuery = "SELECT COUNT(p) FROM Place p LEFT JOIN p.score s " +
+                        "WHERE (:region IS NULL OR p.region = :region) " +
+                        "AND (:placeType IS NULL OR p.placeType = :placeType) " +
+                        "AND (:minCongestionScore IS NULL OR s.congestionScore >= :minCongestionScore) " +
+                        "AND (:maxCongestionScore IS NULL OR s.congestionScore <= :maxCongestionScore)")
+    Page<Long> findIdsByFilterWithCongestionOrderByLatest(@Param("region") Region region,
+                                                          @Param("placeType") PlaceType placeType,
+                                                          @Param("minCongestionScore") Integer minCongestionScore,
+                                                          @Param("maxCongestionScore") Integer maxCongestionScore,
+                                                          Pageable pageable);
+
     // ID 목록으로 상세 fetch (score + petCondition 포함)
     @Query("SELECT DISTINCT p FROM Place p " +
            "LEFT JOIN FETCH p.score " +
