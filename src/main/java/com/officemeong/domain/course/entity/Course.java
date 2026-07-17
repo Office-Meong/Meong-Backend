@@ -52,13 +52,17 @@ public class Course extends BaseTimeEntity {
     @Column(name = "work_focus_level", nullable = false, length = 10)
     private WorkFocusLevel workFocusLevel;
 
+    @Column(name = "name", length = 100)
+    private String name;
+
     @OneToMany(mappedBy = "course", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("dayNumber ASC, visitOrder ASC")
     private List<CourseItem> items = new ArrayList<>();
 
     @Builder
     public Course(User user, Region region, LocalDate startDate, LocalDate endDate,
-                  LocalTime workStartTime, LocalTime workEndTime, WorkFocusLevel workFocusLevel) {
+                  LocalTime workStartTime, LocalTime workEndTime, WorkFocusLevel workFocusLevel,
+                  String name) {
         this.user = user;
         this.region = region;
         this.startDate = startDate;
@@ -66,6 +70,11 @@ public class Course extends BaseTimeEntity {
         this.workStartTime = workStartTime;
         this.workEndTime = workEndTime;
         this.workFocusLevel = workFocusLevel;
+        this.name = name;
+    }
+
+    public void updateName(String name) {
+        this.name = name;
     }
 
     public void addItem(CourseItem item) {

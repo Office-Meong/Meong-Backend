@@ -5,6 +5,7 @@ import com.officemeong.common.config.SecurityConfig;
 import com.officemeong.common.security.JwtAuthenticationFilter;
 import com.officemeong.domain.course.dto.CourseCreateRequest;
 import com.officemeong.domain.course.dto.CourseItemResponse;
+import com.officemeong.domain.course.dto.CourseSummaryResponse;
 import com.officemeong.domain.course.dto.CourseResponse;
 import com.officemeong.domain.course.enums.WorkFocusLevel;
 import com.officemeong.domain.course.service.CourseService;
@@ -137,11 +138,17 @@ class CourseControllerTest {
     @Test
     @DisplayName("내 코스 목록 조회 - 200 OK")
     void getMyCourses_200() throws Exception {
-        when(courseService.getMyCourses(1L)).thenReturn(List.of(sampleCourse()));
+        CourseSummaryResponse summary = CourseSummaryResponse.builder()
+                .id(1L).name("강릉 1일 워케이션").region(Region.GANGNEUNG)
+                .startDate(LocalDate.of(2026, 8, 1)).endDate(LocalDate.of(2026, 8, 1))
+                .totalDays(1).totalPlaceCount(3)
+                .build();
+        when(courseService.getMyCourses(1L)).thenReturn(List.of(summary));
 
         mockMvc.perform(get("/api/v1/courses").with(authAs(1L)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data[0].id").value(1));
+                .andExpect(jsonPath("$.data[0].id").value(1))
+                .andExpect(jsonPath("$.data[0].name").value("강릉 1일 워케이션"));
     }
 
     @Test

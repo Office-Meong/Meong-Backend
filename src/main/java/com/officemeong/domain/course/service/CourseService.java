@@ -47,6 +47,12 @@ public class CourseService {
 
         BigDecimal dogWeightKg = resolveDogWeight(userId, request.getDogId());
 
+        int days = (int) request.getStartDate().until(request.getEndDate(),
+                java.time.temporal.ChronoUnit.DAYS) + 1;
+        String courseName = request.getName() != null && !request.getName().isBlank()
+                ? request.getName()
+                : request.getRegion().name() + " " + days + "일 워케이션";
+
         Course course = Course.builder()
                 .user(user)
                 .region(request.getRegion())
@@ -55,14 +61,12 @@ public class CourseService {
                 .workStartTime(request.getWorkStartTime())
                 .workEndTime(request.getWorkEndTime())
                 .workFocusLevel(request.getWorkFocusLevel())
+                .name(courseName)
                 .build();
 
         Map<PlaceType, List<Place>> candidatesByType = loadCandidates(
                 request.getRegion(), dogWeightKg);
         Set<Long> usedPlaceIds = new HashSet<>();
-
-        int days = (int) request.getStartDate().until(request.getEndDate(),
-                java.time.temporal.ChronoUnit.DAYS) + 1;
 
         for (int day = 1; day <= days; day++) {
             boolean includeStay = (day == 1) && days > 1;
@@ -107,9 +111,9 @@ public class CourseService {
         return CourseResponse.from(course);
     }
 
-    public List<CourseResponse> getMyCourses(Long userId) {
+    public List<CourseSummaryResponse> getMyCourses(Long userId) {
         return courseRepository.findByUserIdOrderByCreatedAtDesc(userId).stream()
-                .map(CourseResponse::from)
+                .map(CourseSummaryResponse::from)
                 .toList();
     }
 
@@ -139,6 +143,16 @@ public class CourseService {
             item.updatePlace(newPlace, dist);
         }
 
+        return CourseResponse.from(course);
+    }
+
+    // ──────────────────── 코스 이름 수정 ────────────────────
+
+    @Transactional
+    public CourseResponse updateCourseName(Long userId, Long courseId, String name) {
+        Course course = courseRepository.findByIdAndUserIdWithItems(courseId, userId)
+                .orElseThrow(() -> new NoSuchElementException("코스를 찾을 수 없습니다. id=" + courseId));
+        course.updateName(name);
         return CourseResponse.from(course);
     }
 

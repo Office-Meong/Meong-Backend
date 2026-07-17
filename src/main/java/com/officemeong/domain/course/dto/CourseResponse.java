@@ -22,6 +22,9 @@ public class CourseResponse {
     @Schema(description = "코스 ID", example = "1")
     private Long id;
 
+    @Schema(description = "코스 이름", example = "강릉 3일 워케이션")
+    private String name;
+
     @Schema(description = "여행 지역", example = "GANGNEUNG")
     private Region region;
 
@@ -59,6 +62,7 @@ public class CourseResponse {
 
         return CourseResponse.builder()
                 .id(course.getId())
+                .name(course.getName())
                 .region(course.getRegion())
                 .startDate(course.getStartDate())
                 .endDate(course.getEndDate())

@@ -40,4 +40,8 @@ public class CourseCreateRequest {
 
     @Schema(description = "반려견 ID (선택). 지정 시 반려견 체중으로 장소 크기 제한 필터링", example = "1")
     private Long dogId;
+
+    @Schema(description = "코스 이름 (선택). 미입력 시 자동 생성 (예: 강릉 3일 워케이션)", example = "우리 가족 강릉 여행")
+    @jakarta.validation.constraints.Size(max = 100)
+    private String name;
 }

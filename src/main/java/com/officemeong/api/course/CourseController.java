@@ -51,7 +51,7 @@ public class CourseController {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "인증 필요")
     })
     @GetMapping
-    public ResponseEntity<ApiResponse<List<CourseResponse>>> getMyCourses(
+    public ResponseEntity<ApiResponse<List<CourseSummaryResponse>>> getMyCourses(
             @AuthenticationPrincipal Long userId
     ) {
         return ResponseEntity.ok(ApiResponse.ok(courseService.getMyCourses(userId)));
@@ -87,6 +87,23 @@ public class CourseController {
     ) {
         return ResponseEntity.ok(ApiResponse.ok(
                 courseService.updateCourseItem(userId, courseId, itemId, request)));
+    }
+
+    @Operation(summary = "코스 이름 수정", description = "코스의 이름을 변경합니다.")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "이름 수정 성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "이름 누락"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "인증 필요"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "코스를 찾을 수 없음")
+    })
+    @PatchMapping("/{courseId}/name")
+    public ResponseEntity<ApiResponse<CourseResponse>> updateCourseName(
+            @Parameter(description = "코스 ID", example = "1") @PathVariable Long courseId,
+            @Valid @RequestBody CourseNameUpdateRequest request,
+            @AuthenticationPrincipal Long userId
+    ) {
+        return ResponseEntity.ok(ApiResponse.ok(
+                courseService.updateCourseName(userId, courseId, request.getName())));
     }
 
     @Operation(summary = "코스 삭제", description = "내가 생성한 코스를 삭제합니다.")

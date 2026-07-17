@@ -1,6 +1,7 @@
 package com.officemeong.domain.course.service;
 
 import com.officemeong.domain.course.dto.CourseCreateRequest;
+import com.officemeong.domain.course.dto.CourseSummaryResponse;
 import com.officemeong.domain.course.dto.CourseResponse;
 import com.officemeong.domain.course.entity.Course;
 import com.officemeong.domain.course.entity.CourseItem;
@@ -61,6 +62,7 @@ class CourseServiceTest {
         lenient().when(request.getWorkEndTime()).thenReturn(LocalTime.of(18, 0));
         lenient().when(request.getWorkFocusLevel()).thenReturn(WorkFocusLevel.MEDIUM);
         lenient().when(request.getDogId()).thenReturn(null);
+        lenient().when(request.getName()).thenReturn(null);
     }
 
     @Test
@@ -169,7 +171,10 @@ class CourseServiceTest {
     private Course mockCourse(Long id) {
         Course c = mock(Course.class);
         lenient().when(c.getId()).thenReturn(id);
+        lenient().when(c.getName()).thenReturn("강릉 1일 워케이션");
         lenient().when(c.getRegion()).thenReturn(Region.GANGNEUNG);
+        lenient().when(c.getStartDate()).thenReturn(LocalDate.of(2026, 8, 1));
+        lenient().when(c.getEndDate()).thenReturn(LocalDate.of(2026, 8, 1));
         lenient().when(c.getItems()).thenReturn(List.of());
         return c;
     }
@@ -182,7 +187,10 @@ class CourseServiceTest {
 
         Course course = mock(Course.class);
         lenient().when(course.getId()).thenReturn(courseId);
+        lenient().when(course.getName()).thenReturn("강릉 1일 워케이션");
         lenient().when(course.getRegion()).thenReturn(Region.GANGNEUNG);
+        lenient().when(course.getStartDate()).thenReturn(LocalDate.of(2026, 8, 1));
+        lenient().when(course.getEndDate()).thenReturn(LocalDate.of(2026, 8, 1));
         lenient().when(course.getItems()).thenReturn(List.of(item));
         return course;
     }
