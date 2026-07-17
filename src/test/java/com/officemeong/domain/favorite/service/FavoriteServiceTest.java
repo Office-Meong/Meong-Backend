@@ -39,9 +39,9 @@ class FavoriteServiceTest {
     @DisplayName("즐겨찾기 목록 조회")
     void getMyFavorites_목록_반환() {
         Favorite fav = mockFavorite(1L, 10L, "강릉 카페");
-        when(favoriteRepository.findByUserIdWithPlace(1L)).thenReturn(List.of(fav));
+        when(favoriteRepository.findByUserIdWithPlace(1L, null, null)).thenReturn(List.of(fav));
 
-        List<FavoriteResponse> result = favoriteService.getMyFavorites(1L);
+        List<FavoriteResponse> result = favoriteService.getMyFavorites(1L, null, null);
 
         assertThat(result).hasSize(1);
         assertThat(result.get(0).getPlaceName()).isEqualTo("강릉 카페");
@@ -50,9 +50,9 @@ class FavoriteServiceTest {
     @Test
     @DisplayName("즐겨찾기 목록 - 빈 결과")
     void getMyFavorites_빈_결과() {
-        when(favoriteRepository.findByUserIdWithPlace(1L)).thenReturn(List.of());
+        when(favoriteRepository.findByUserIdWithPlace(1L, null, null)).thenReturn(List.of());
 
-        List<FavoriteResponse> result = favoriteService.getMyFavorites(1L);
+        List<FavoriteResponse> result = favoriteService.getMyFavorites(1L, null, null);
 
         assertThat(result).isEmpty();
     }
@@ -124,6 +124,8 @@ class FavoriteServiceTest {
         lenient().when(place.getPlaceType()).thenReturn(PlaceType.FOOD);
         lenient().when(place.getRegion()).thenReturn(Region.GANGNEUNG);
         lenient().when(place.getAddress()).thenReturn("강원도 강릉시 테스트로 1");
+        lenient().when(place.getImages()).thenReturn(List.of());
+        lenient().when(place.getScore()).thenReturn(null);
 
         User user = mock(User.class);
         lenient().when(user.getId()).thenReturn(userId);

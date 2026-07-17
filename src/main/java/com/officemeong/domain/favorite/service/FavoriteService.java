@@ -4,6 +4,8 @@ import com.officemeong.domain.favorite.dto.FavoriteResponse;
 import com.officemeong.domain.favorite.entity.Favorite;
 import com.officemeong.domain.favorite.repository.FavoriteRepository;
 import com.officemeong.domain.place.entity.Place;
+import com.officemeong.domain.place.enums.PlaceType;
+import com.officemeong.domain.place.enums.Region;
 import com.officemeong.domain.place.repository.PlaceRepository;
 import com.officemeong.domain.user.entity.User;
 import com.officemeong.domain.user.repository.UserRepository;
@@ -23,8 +25,8 @@ public class FavoriteService {
     private final UserRepository userRepository;
     private final PlaceRepository placeRepository;
 
-    public List<FavoriteResponse> getMyFavorites(Long userId) {
-        return favoriteRepository.findByUserIdWithPlace(userId).stream()
+    public List<FavoriteResponse> getMyFavorites(Long userId, Region region, PlaceType placeType) {
+        return favoriteRepository.findByUserIdWithPlace(userId, region, placeType).stream()
                 .map(FavoriteResponse::from)
                 .toList();
     }

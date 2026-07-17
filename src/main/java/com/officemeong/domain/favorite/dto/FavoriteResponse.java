@@ -1,6 +1,9 @@
 package com.officemeong.domain.favorite.dto;
 
 import com.officemeong.domain.favorite.entity.Favorite;
+import com.officemeong.domain.place.entity.PlaceImage;
+import com.officemeong.domain.place.entity.PlaceScore;
+import com.officemeong.domain.place.enums.Grade;
 import com.officemeong.domain.place.enums.PlaceType;
 import com.officemeong.domain.place.enums.Region;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -29,16 +32,32 @@ public class FavoriteResponse {
     @Schema(description = "주소", example = "강원도 강릉시 ...")
     private String address;
 
+    @Schema(description = "썸네일 이미지 URL")
+    private String thumbnailUrl;
+
+    @Schema(description = "펫-워크 등급", example = "B")
+    private Grade grade;
+
     @Schema(description = "즐겨찾기 등록 시각")
     private LocalDateTime favoritedAt;
 
     public static FavoriteResponse from(Favorite favorite) {
+        PlaceScore score = favorite.getPlace().getScore();
+        String thumbnail = favorite.getPlace().getImages().stream()
+                .filter(PlaceImage::isThumbnail)
+                .map(PlaceImage::getImageUrl)
+                .findFirst()
+                .orElseGet(() -> favorite.getPlace().getImages().isEmpty() ? null
+                        : favorite.getPlace().getImages().get(0).getImageUrl());
+
         return FavoriteResponse.builder()
                 .placeId(favorite.getPlace().getId())
                 .placeName(favorite.getPlace().getName())
                 .placeType(favorite.getPlace().getPlaceType())
                 .region(favorite.getPlace().getRegion())
                 .address(favorite.getPlace().getAddress())
+                .thumbnailUrl(thumbnail)
+                .grade(score != null ? score.getGrade() : null)
                 .favoritedAt(favorite.getCreatedAt())
                 .build();
     }

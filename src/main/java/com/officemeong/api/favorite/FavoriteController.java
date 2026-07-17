@@ -3,6 +3,8 @@ package com.officemeong.api.favorite;
 import com.officemeong.common.dto.ApiResponse;
 import com.officemeong.domain.favorite.dto.FavoriteResponse;
 import com.officemeong.domain.favorite.service.FavoriteService;
+import com.officemeong.domain.place.enums.PlaceType;
+import com.officemeong.domain.place.enums.Region;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -34,8 +36,12 @@ public class FavoriteController {
     })
     @GetMapping
     public ResponseEntity<ApiResponse<List<FavoriteResponse>>> getMyFavorites(
-            @AuthenticationPrincipal Long userId) {
-        return ResponseEntity.ok(ApiResponse.ok(favoriteService.getMyFavorites(userId)));
+            @AuthenticationPrincipal Long userId,
+            @Parameter(description = "지역 필터 (예: GANGNEUNG). 미입력 시 전체")
+            @RequestParam(required = false) Region region,
+            @Parameter(description = "장소 유형 필터 (예: FOOD). 미입력 시 전체")
+            @RequestParam(required = false) PlaceType placeType) {
+        return ResponseEntity.ok(ApiResponse.ok(favoriteService.getMyFavorites(userId, region, placeType)));
     }
 
     @Operation(

@@ -30,6 +30,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.NoSuchElementException;
 
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -73,7 +74,7 @@ class FavoriteControllerTest {
         FavoriteResponse resp = FavoriteResponse.builder()
                 .placeId(10L).placeName("강릉 카페").placeType(PlaceType.FOOD)
                 .region(Region.GANGNEUNG).address("강원도 강릉시").build();
-        when(favoriteService.getMyFavorites(1L)).thenReturn(List.of(resp));
+        when(favoriteService.getMyFavorites(eq(1L), isNull(), isNull())).thenReturn(List.of(resp));
 
         mockMvc.perform(get("/api/v1/favorites").with(authAs(1L)))
                 .andExpect(status().isOk())
