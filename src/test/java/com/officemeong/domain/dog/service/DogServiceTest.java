@@ -3,6 +3,8 @@ package com.officemeong.domain.dog.service;
 import com.officemeong.domain.dog.dto.DogRequest;
 import com.officemeong.domain.dog.dto.DogResponse;
 import com.officemeong.domain.dog.entity.Dog;
+import com.officemeong.domain.dog.enums.ActivityLevel;
+import com.officemeong.domain.dog.enums.DogSize;
 import com.officemeong.domain.dog.repository.DogRepository;
 import com.officemeong.domain.user.entity.User;
 import com.officemeong.domain.user.repository.UserRepository;
@@ -91,11 +93,14 @@ class DogServiceTest {
         DogRequest request = mockDogRequest("초코", "포메라니안", new BigDecimal("2.0"));
         when(request.getBirthDate()).thenReturn(LocalDate.of(2022, 1, 1));
         when(request.getIsNeutered()).thenReturn(true);
+        when(request.getSizeCategory()).thenReturn(DogSize.SMALL);
+        when(request.getActivityLevel()).thenReturn(ActivityLevel.MEDIUM);
 
         dogService.updateDog(1L, 1L, request);
 
         verify(dog).update("초코", "포메라니안", new BigDecimal("2.0"),
-                LocalDate.of(2022, 1, 1), true);
+                LocalDate.of(2022, 1, 1), true,
+                null, DogSize.SMALL, ActivityLevel.MEDIUM, null, null);
     }
 
     @Test
@@ -137,6 +142,11 @@ class DogServiceTest {
         lenient().when(dog.getWeightKg()).thenReturn(null);
         lenient().when(dog.getBirthDate()).thenReturn(null);
         lenient().when(dog.getIsNeutered()).thenReturn(false);
+        lenient().when(dog.getImageUrl()).thenReturn(null);
+        lenient().when(dog.getSizeCategory()).thenReturn(null);
+        lenient().when(dog.getActivityLevel()).thenReturn(null);
+        lenient().when(dog.getSociability()).thenReturn(null);
+        lenient().when(dog.getHealthStatus()).thenReturn(null);
         return dog;
     }
 
@@ -147,6 +157,11 @@ class DogServiceTest {
         lenient().when(request.getWeightKg()).thenReturn(weightKg);
         lenient().when(request.getBirthDate()).thenReturn(null);
         lenient().when(request.getIsNeutered()).thenReturn(null);
+        lenient().when(request.getImageUrl()).thenReturn(null);
+        lenient().when(request.getSizeCategory()).thenReturn(null);
+        lenient().when(request.getActivityLevel()).thenReturn(null);
+        lenient().when(request.getSociability()).thenReturn(null);
+        lenient().when(request.getHealthStatus()).thenReturn(null);
         return request;
     }
 }

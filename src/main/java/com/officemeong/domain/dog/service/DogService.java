@@ -39,6 +39,11 @@ public class DogService {
                 .weightKg(request.getWeightKg())
                 .birthDate(request.getBirthDate())
                 .isNeutered(request.getIsNeutered())
+                .imageUrl(request.getImageUrl())
+                .sizeCategory(request.getSizeCategory())
+                .activityLevel(request.getActivityLevel())
+                .sociability(request.getSociability())
+                .healthStatus(request.getHealthStatus())
                 .build();
 
         return DogResponse.from(dogRepository.save(dog));
@@ -50,7 +55,9 @@ public class DogService {
                 .orElseThrow(() -> new NoSuchElementException("반려견을 찾을 수 없습니다: " + dogId));
 
         dog.update(request.getName(), request.getBreed(), request.getWeightKg(),
-                request.getBirthDate(), request.getIsNeutered());
+                request.getBirthDate(), request.getIsNeutered(),
+                request.getImageUrl(), request.getSizeCategory(), request.getActivityLevel(),
+                request.getSociability(), request.getHealthStatus());
 
         return DogResponse.from(dog);
     }
