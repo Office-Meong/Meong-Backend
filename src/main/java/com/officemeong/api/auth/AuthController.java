@@ -39,7 +39,7 @@ public class AuthController {
     @PostMapping("/kakao")
     public ResponseEntity<ApiResponse<TokenResponse>> kakaoLogin(
             @Valid @RequestBody KakaoLoginRequest request) {
-        TokenResponse token = authService.kakaoLogin(request.getCode());
+        TokenResponse token = authService.kakaoLogin(request.getCode(), request.getTermsAgreed(), request.getPrivacyAgreed());
         return ResponseEntity.ok(ApiResponse.ok(token));
     }
 

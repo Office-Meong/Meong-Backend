@@ -40,11 +40,11 @@ class AuthControllerTest {
     @DisplayName("카카오 로그인 - 200 OK")
     void kakaoLogin_200_반환() throws Exception {
         TokenResponse tokenResponse = TokenResponse.of("access-token", "refresh-token", 1800L);
-        when(authService.kakaoLogin("auth-code")).thenReturn(tokenResponse);
+        when(authService.kakaoLogin("auth-code", true, true)).thenReturn(tokenResponse);
 
         mockMvc.perform(post("/api/v1/auth/kakao")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"code\": \"auth-code\"}"))
+                        .content("{\"code\": \"auth-code\", \"termsAgreed\": true, \"privacyAgreed\": true}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.accessToken").value("access-token"))

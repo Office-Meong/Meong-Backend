@@ -51,7 +51,7 @@ class AuthServiceTest {
         when(jwtProvider.createRefreshToken(1L)).thenReturn("refresh-token");
         when(jwtProvider.getAccessTokenExpirySeconds()).thenReturn(1800L);
 
-        TokenResponse response = authService.kakaoLogin("auth-code");
+        TokenResponse response = authService.kakaoLogin("auth-code", true, true);
 
         assertThat(response.getAccessToken()).isEqualTo("access-token");
         assertThat(response.getRefreshToken()).isEqualTo("refresh-token");
@@ -76,7 +76,7 @@ class AuthServiceTest {
         when(jwtProvider.createRefreshToken(1L)).thenReturn("refresh-token");
         when(jwtProvider.getAccessTokenExpirySeconds()).thenReturn(1800L);
 
-        TokenResponse response = authService.kakaoLogin("auth-code");
+        TokenResponse response = authService.kakaoLogin("auth-code", null, null);
 
         assertThat(response.getAccessToken()).isEqualTo("access-token");
         verify(userRepository, times(1)).save(existingUser);
@@ -154,9 +154,26 @@ class AuthServiceTest {
         when(userInfo.getId()).thenReturn(123456L);
         when(userRepository.findByKakaoId(123456L)).thenReturn(Optional.of(deletedUser));
 
-        assertThatThrownBy(() -> authService.kakaoLogin("auth-code"))
+        assertThatThrownBy(() -> authService.kakaoLogin("auth-code", null, null))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("탈퇴한 사용자");
+    }
+
+    @Test
+    @DisplayName("신규 사용자가 약관 미동의 시 예외 발생")
+    void kakaoLogin_신규_사용자_약관_미동의_예외() {
+        KakaoTokenResponse kakaoToken = mock(KakaoTokenResponse.class);
+        KakaoUserInfoResponse userInfo = mock(KakaoUserInfoResponse.class);
+
+        when(kakaoClient.getToken("auth-code")).thenReturn(kakaoToken);
+        when(kakaoToken.getAccessToken()).thenReturn("kakao-access-token");
+        when(kakaoClient.getUserInfo("kakao-access-token")).thenReturn(userInfo);
+        when(userInfo.getId()).thenReturn(99999L);
+        when(userRepository.findByKakaoId(99999L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> authService.kakaoLogin("auth-code", false, true))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("동의");
     }
 
     private User mockUser(Long id) {

@@ -20,17 +20,24 @@ public class AuthService {
     private final JwtProvider jwtProvider;
 
     @Transactional
-    public TokenResponse kakaoLogin(String authorizationCode) {
+    public TokenResponse kakaoLogin(String authorizationCode, Boolean termsAgreed, Boolean privacyAgreed) {
         KakaoTokenResponse kakaoToken = kakaoClient.getToken(authorizationCode);
         KakaoUserInfoResponse userInfo = kakaoClient.getUserInfo(kakaoToken.getAccessToken());
 
         User user = userRepository.findByKakaoId(userInfo.getId())
-                .orElseGet(() -> userRepository.save(User.builder()
-                        .kakaoId(userInfo.getId())
-                        .nickname(userInfo.getNickname() != null ? userInfo.getNickname() : "사용자")
-                        .profileImageUrl(userInfo.getProfileImageUrl())
-                        .email(userInfo.getEmail())
-                        .build()));
+                .orElseGet(() -> {
+                    if (!Boolean.TRUE.equals(termsAgreed) || !Boolean.TRUE.equals(privacyAgreed)) {
+                        throw new IllegalArgumentException("서비스 이용약관 및 개인정보 처리방침에 동의해야 합니다.");
+                    }
+                    return userRepository.save(User.builder()
+                            .kakaoId(userInfo.getId())
+                            .nickname(userInfo.getNickname() != null ? userInfo.getNickname() : "사용자")
+                            .profileImageUrl(userInfo.getProfileImageUrl())
+                            .email(userInfo.getEmail())
+                            .termsAgreed(termsAgreed)
+                            .privacyAgreed(privacyAgreed)
+                            .build());
+                });
 
         if (user.isDeleted()) {
             throw new IllegalStateException("탈퇴한 사용자입니다.");

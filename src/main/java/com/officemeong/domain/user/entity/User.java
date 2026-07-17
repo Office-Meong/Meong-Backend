@@ -37,15 +37,24 @@ public class User extends BaseTimeEntity {
     @Column(name = "refresh_token", length = 512)
     private String refreshToken;
 
+    @Column(name = "terms_agreed", nullable = false)
+    private Boolean termsAgreed = false;
+
+    @Column(name = "privacy_agreed", nullable = false)
+    private Boolean privacyAgreed = false;
+
     @Column(name = "deleted_at")
     private LocalDateTime deletedAt;
 
     @Builder
-    public User(Long kakaoId, String nickname, String profileImageUrl, String email) {
+    public User(Long kakaoId, String nickname, String profileImageUrl, String email,
+                Boolean termsAgreed, Boolean privacyAgreed) {
         this.kakaoId = kakaoId;
         this.nickname = nickname;
         this.profileImageUrl = profileImageUrl;
         this.email = email;
+        this.termsAgreed = Boolean.TRUE.equals(termsAgreed);
+        this.privacyAgreed = Boolean.TRUE.equals(privacyAgreed);
     }
 
     public void updateProfile(String nickname, String profileImageUrl) {
