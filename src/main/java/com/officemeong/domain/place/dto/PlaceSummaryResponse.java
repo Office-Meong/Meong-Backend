@@ -26,8 +26,13 @@ public class PlaceSummaryResponse {
     private AcmpyType acmpyType;
     private int congestionScore;
     private CongestionLevel congestionLevel;
+    private boolean isFavorite;
 
     public static PlaceSummaryResponse from(Place place) {
+        return from(place, false);
+    }
+
+    public static PlaceSummaryResponse from(Place place, boolean isFavorite) {
         PlaceScore score = place.getScore();
         int congestionScore = score != null ? score.getCongestionScore() : 8;
 
@@ -50,6 +55,7 @@ public class PlaceSummaryResponse {
                 .acmpyType(place.getPetCondition() != null ? place.getPetCondition().getAcmpyType() : null)
                 .congestionScore(congestionScore)
                 .congestionLevel(CongestionLevel.fromScore(congestionScore))
+                .isFavorite(isFavorite)
                 .build();
     }
 }

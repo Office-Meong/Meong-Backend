@@ -1,6 +1,7 @@
 package com.officemeong.domain.place.service;
 
 import com.officemeong.common.dto.PageResponse;
+import com.officemeong.domain.favorite.repository.FavoriteRepository;
 import com.officemeong.domain.place.dto.PlaceDetailResponse;
 import com.officemeong.domain.place.dto.PlaceSummaryResponse;
 import com.officemeong.domain.place.entity.Place;
@@ -23,6 +24,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -36,12 +38,13 @@ public class PlaceService {
 
     private final PlaceRepository placeRepository;
     private final WalkCourseRepository walkCourseRepository;
+    private final FavoriteRepository favoriteRepository;
 
     public enum SortType { SCORE, LATEST }
 
     public PageResponse<PlaceSummaryResponse> getPlaces(Region region, PlaceType placeType,
                                                          SortType sort, CongestionLevel congestion,
-                                                         int page, int size) {
+                                                         int page, int size, Long userId) {
         PageRequest pageRequest = PageRequest.of(page, size);
 
         Page<Long> idPage;
@@ -64,20 +67,24 @@ public class PlaceService {
         List<Long> ids = idPage.getContent();
         List<Place> places = placeRepository.findByIdsWithSummaryDetails(ids);
 
-        // ID 순서 보존 (DB 쿼리 결과는 IN 절 순서를 보장하지 않음)
+        Set<Long> favoritedIds = userId != null
+                ? Set.copyOf(favoriteRepository.findFavoritedPlaceIds(userId, ids))
+                : Set.of();
+
         Map<Long, Place> placeMap = places.stream().collect(Collectors.toMap(Place::getId, Function.identity()));
         List<PlaceSummaryResponse> content = ids.stream()
                 .filter(placeMap::containsKey)
-                .map(id -> PlaceSummaryResponse.from(placeMap.get(id)))
+                .map(id -> PlaceSummaryResponse.from(placeMap.get(id), favoritedIds.contains(id)))
                 .toList();
 
         return PageResponse.of(content, page, size, idPage.getTotalElements());
     }
 
-    public PlaceDetailResponse getPlace(Long id) {
+    public PlaceDetailResponse getPlace(Long id, Long userId) {
         Place place = placeRepository.findByIdWithAllDetails(id)
                 .orElseThrow(() -> new NoSuchElementException("장소를 찾을 수 없습니다: " + id));
-        return PlaceDetailResponse.from(place);
+        boolean isFavorite = userId != null && favoriteRepository.existsByUserIdAndPlaceId(userId, id);
+        return PlaceDetailResponse.from(place, isFavorite);
     }
 
     public List<NearbyWalkCourseResponse> getNearbyWalkCourses(Long placeId) {

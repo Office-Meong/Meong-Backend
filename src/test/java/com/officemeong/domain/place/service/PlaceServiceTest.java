@@ -7,6 +7,7 @@ import com.officemeong.domain.place.entity.Place;
 import com.officemeong.domain.place.enums.CongestionLevel;
 import com.officemeong.domain.place.enums.PlaceType;
 import com.officemeong.domain.place.enums.Region;
+import com.officemeong.domain.favorite.repository.FavoriteRepository;
 import com.officemeong.domain.place.repository.PlaceRepository;
 import com.officemeong.domain.walk.dto.NearbyWalkCourseResponse;
 import com.officemeong.domain.walk.entity.WalkCourse;
@@ -36,6 +37,7 @@ class PlaceServiceTest {
 
     @Mock PlaceRepository placeRepository;
     @Mock WalkCourseRepository walkCourseRepository;
+    @Mock FavoriteRepository favoriteRepository;
 
     @InjectMocks PlaceService placeService;
 
@@ -44,7 +46,7 @@ class PlaceServiceTest {
     void getPlace_존재하지_않는_장소_예외_발생() {
         when(placeRepository.findByIdWithAllDetails(99L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> placeService.getPlace(99L))
+        assertThatThrownBy(() -> placeService.getPlace(99L, null))
                 .isInstanceOf(NoSuchElementException.class)
                 .hasMessageContaining("99");
     }
@@ -55,7 +57,7 @@ class PlaceServiceTest {
         Place place = mockPlace(1L, "테스트 카페", Region.GANGNEUNG, PlaceType.WORK_PLACE);
         when(placeRepository.findByIdWithAllDetails(1L)).thenReturn(Optional.of(place));
 
-        PlaceDetailResponse response = placeService.getPlace(1L);
+        PlaceDetailResponse response = placeService.getPlace(1L, null);
 
         assertThat(response.getName()).isEqualTo("테스트 카페");
         assertThat(response.getRegion()).isEqualTo(Region.GANGNEUNG);
@@ -69,7 +71,7 @@ class PlaceServiceTest {
                 .thenReturn(new PageImpl<>(List.of(), PageRequest.of(0, 20), 0));
 
         PageResponse<PlaceSummaryResponse> response =
-                placeService.getPlaces(null, null, PlaceService.SortType.SCORE, null, 0, 20);
+                placeService.getPlaces(null, null, PlaceService.SortType.SCORE, null, 0, 20, null);
 
         assertThat(response.getContent()).isEmpty();
         assertThat(response.getTotalElements()).isZero();
@@ -87,7 +89,7 @@ class PlaceServiceTest {
                 .thenReturn(List.of(place1, place2));
 
         PageResponse<PlaceSummaryResponse> response =
-                placeService.getPlaces(Region.GANGNEUNG, null, PlaceService.SortType.SCORE, null, 0, 20);
+                placeService.getPlaces(Region.GANGNEUNG, null, PlaceService.SortType.SCORE, null, 0, 20, null);
 
         assertThat(response.getContent()).hasSize(2);
         assertThat(response.getTotalElements()).isEqualTo(2);
@@ -105,7 +107,7 @@ class PlaceServiceTest {
                 .thenReturn(List.of(place));
 
         PageResponse<PlaceSummaryResponse> response =
-                placeService.getPlaces(null, null, PlaceService.SortType.LATEST, null, 0, 20);
+                placeService.getPlaces(null, null, PlaceService.SortType.LATEST, null, 0, 20, null);
 
         assertThat(response.getContent()).hasSize(1);
         assertThat(response.getContent().get(0).getName()).isEqualTo("최신 장소");
@@ -122,7 +124,7 @@ class PlaceServiceTest {
                 .thenReturn(List.of(place));
 
         PageResponse<PlaceSummaryResponse> response =
-                placeService.getPlaces(null, null, PlaceService.SortType.SCORE, null, 0, 20);
+                placeService.getPlaces(null, null, PlaceService.SortType.SCORE, null, 0, 20, null);
 
         assertThat(response.getContent()).hasSize(1);
         assertThat(response.getContent().get(0).getTotalScore()).isZero();
@@ -140,7 +142,7 @@ class PlaceServiceTest {
                 .thenReturn(List.of(place));
 
         PageResponse<PlaceSummaryResponse> response =
-                placeService.getPlaces(null, null, PlaceService.SortType.SCORE, CongestionLevel.RELAXED, 0, 20);
+                placeService.getPlaces(null, null, PlaceService.SortType.SCORE, CongestionLevel.RELAXED, 0, 20, null);
 
         assertThat(response.getContent()).hasSize(1);
         assertThat(response.getContent().get(0).getName()).isEqualTo("여유로운 카페");
@@ -154,7 +156,7 @@ class PlaceServiceTest {
                 .thenReturn(new PageImpl<>(List.of(), PageRequest.of(0, 20), 0));
 
         PageResponse<PlaceSummaryResponse> response =
-                placeService.getPlaces(null, null, PlaceService.SortType.LATEST, CongestionLevel.VERY_CROWDED, 0, 20);
+                placeService.getPlaces(null, null, PlaceService.SortType.LATEST, CongestionLevel.VERY_CROWDED, 0, 20, null);
 
         assertThat(response.getContent()).isEmpty();
     }

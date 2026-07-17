@@ -24,6 +24,7 @@ public class PlaceDetailResponse {
     private String homepage;
     private String overview;
     private List<String> imageUrls;
+    private boolean isFavorite;
     private ScoreDto score;
     private PetConditionDto petCondition;
     private OperationDto operation;
@@ -77,6 +78,10 @@ public class PlaceDetailResponse {
     }
 
     public static PlaceDetailResponse from(Place place) {
+        return from(place, false);
+    }
+
+    public static PlaceDetailResponse from(Place place, boolean isFavorite) {
         PlaceScore score = place.getScore();
         PlacePetCondition pet = place.getPetCondition();
         PlaceOperation op = place.getOperation();
@@ -98,6 +103,7 @@ public class PlaceDetailResponse {
                 .homepage(place.getHomepage())
                 .overview(place.getOverview())
                 .imageUrls(images)
+                .isFavorite(isFavorite)
                 .score(score != null ? ScoreDto.builder()
                         .petCompanionScore(score.getPetCompanionScore())
                         .workcationScore(score.getWorkcationScore())

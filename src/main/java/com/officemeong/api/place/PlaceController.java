@@ -15,6 +15,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -53,9 +54,11 @@ public class PlaceController {
             @RequestParam(defaultValue = "0") int page,
 
             @Parameter(description = "페이지 크기. 기본값: 20")
-            @RequestParam(defaultValue = "20") int size
+            @RequestParam(defaultValue = "20") int size,
+
+            @AuthenticationPrincipal Long userId
     ) {
-        PageResponse<PlaceSummaryResponse> result = placeService.getPlaces(region, type, sort, congestion, page, size);
+        PageResponse<PlaceSummaryResponse> result = placeService.getPlaces(region, type, sort, congestion, page, size, userId);
         return ResponseEntity.ok(ApiResponse.ok(result));
     }
 
@@ -70,8 +73,9 @@ public class PlaceController {
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<PlaceDetailResponse>> getPlace(
             @Parameter(description = "장소 ID", required = true)
-            @PathVariable Long id) {
-        PlaceDetailResponse result = placeService.getPlace(id);
+            @PathVariable Long id,
+            @AuthenticationPrincipal Long userId) {
+        PlaceDetailResponse result = placeService.getPlace(id, userId);
         return ResponseEntity.ok(ApiResponse.ok(result));
     }
 

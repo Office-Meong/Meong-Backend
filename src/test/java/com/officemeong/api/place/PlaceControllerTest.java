@@ -52,7 +52,7 @@ class PlaceControllerTest {
                 .id(1L).name("테스트 카페").region(Region.GANGNEUNG)
                 .placeType(PlaceType.WORK_PLACE).totalScore(70).build();
 
-        when(placeService.getPlaces(any(), any(), any(), any(), anyInt(), anyInt()))
+        when(placeService.getPlaces(any(), any(), any(), any(), anyInt(), anyInt(), any()))
                 .thenReturn(PageResponse.of(List.of(summary), 0, 20, 1));
 
         mockMvc.perform(get("/api/v1/places")
@@ -67,7 +67,7 @@ class PlaceControllerTest {
     @DisplayName("지역 필터 적용 장소 목록 조회 - 200 OK")
     void getPlaces_지역_필터_200_반환() throws Exception {
         when(placeService.getPlaces(eq(Region.GANGNEUNG), isNull(),
-                eq(PlaceService.SortType.SCORE), isNull(), eq(0), eq(20)))
+                eq(PlaceService.SortType.SCORE), isNull(), eq(0), eq(20), isNull()))
                 .thenReturn(PageResponse.of(List.of(), 0, 20, 0));
 
         mockMvc.perform(get("/api/v1/places")
@@ -80,7 +80,7 @@ class PlaceControllerTest {
     @DisplayName("타입 필터 + 최신순 정렬 장소 목록 조회 - 200 OK")
     void getPlaces_타입_필터_최신순_200_반환() throws Exception {
         when(placeService.getPlaces(isNull(), eq(PlaceType.STAY),
-                eq(PlaceService.SortType.LATEST), isNull(), eq(0), eq(10)))
+                eq(PlaceService.SortType.LATEST), isNull(), eq(0), eq(10), isNull()))
                 .thenReturn(PageResponse.of(List.of(), 0, 10, 0));
 
         mockMvc.perform(get("/api/v1/places")
@@ -98,7 +98,7 @@ class PlaceControllerTest {
                 .placeType(PlaceType.STAY).address("강원도 춘천시 테스트로 1")
                 .imageUrls(List.of()).build();
 
-        when(placeService.getPlace(1L)).thenReturn(detail);
+        when(placeService.getPlace(1L, null)).thenReturn(detail);
 
         mockMvc.perform(get("/api/v1/places/1"))
                 .andExpect(status().isOk())
@@ -110,7 +110,7 @@ class PlaceControllerTest {
     @Test
     @DisplayName("존재하지 않는 장소 상세 조회 - 404 반환")
     void getPlace_존재하지_않는_id_404_반환() throws Exception {
-        when(placeService.getPlace(999L))
+        when(placeService.getPlace(999L, null))
                 .thenThrow(new NoSuchElementException("장소를 찾을 수 없습니다: 999"));
 
         mockMvc.perform(get("/api/v1/places/999"))
@@ -131,7 +131,7 @@ class PlaceControllerTest {
     @DisplayName("혼잡도 필터 RELAXED 적용 장소 목록 조회 - 200 OK")
     void getPlaces_혼잡도_RELAXED_필터_200_반환() throws Exception {
         when(placeService.getPlaces(isNull(), isNull(),
-                eq(PlaceService.SortType.SCORE), eq(CongestionLevel.RELAXED), eq(0), eq(20)))
+                eq(PlaceService.SortType.SCORE), eq(CongestionLevel.RELAXED), eq(0), eq(20), isNull()))
                 .thenReturn(PageResponse.of(List.of(), 0, 20, 0));
 
         mockMvc.perform(get("/api/v1/places")
