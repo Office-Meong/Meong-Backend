@@ -1,6 +1,8 @@
 package com.officemeong.batch.step;
 
 import com.officemeong.domain.place.entity.Place;
+import com.officemeong.domain.place.entity.PlaceAccessibility;
+import com.officemeong.domain.place.entity.PlaceOperation;
 import com.officemeong.domain.place.entity.PlacePetCondition;
 import com.officemeong.domain.place.entity.PlaceScore;
 import com.officemeong.domain.place.enums.AcmpyType;
@@ -55,10 +57,12 @@ public class ScoreCalculateTasklet implements Tasklet {
             int workcationScore = getWorkcationScore(place.getPlaceType());
             int walkScore = calcWalkScore(place, coursesByRegion.get(place.getRegion()));
             int emergencyScore = calcEmergencyScore(place, hospitalsByRegion.get(place.getRegion()));
+            int accessibilityScore = calcAccessibilityScore(place);
 
             score.updatePetAndWorkcationScores(petScore, workcationScore);
             score.updateWalkAccessibilityScore(walkScore);
             score.updateEmergencyScore(emergencyScore);
+            score.updateAccessibilityScore(accessibilityScore);
             scoreRepository.save(score);
             calculated++;
         }
@@ -136,6 +140,22 @@ public class ScoreCalculateTasklet implements Tasklet {
         if (minKm <= 5.0) return 3;
         if (minKm <= 10.0) return 1;
         return 0;
+    }
+
+    /**
+     * 접근성 점수 (0~8점)
+     * 주차 가능(PlaceOperation): +5, 유모차/휠체어 접근(PlaceAccessibility): +2, 경사로: +1
+     * 주차 데이터는 KTO/GWTO 수집 시 PlaceOperation.parkingAvailable에 저장됨.
+     * 유모차·경사로 데이터는 향후 확보 시 PlaceAccessibility에서 반영.
+     */
+    private int calcAccessibilityScore(Place place) {
+        int score = 0;
+        PlaceOperation op = place.getOperation();
+        if (op != null && Boolean.TRUE.equals(op.getParkingAvailable())) score += 5;
+        PlaceAccessibility acc = place.getAccessibility();
+        if (acc != null && Boolean.TRUE.equals(acc.getStrollerAccessible())) score += 2;
+        if (acc != null && Boolean.TRUE.equals(acc.getHasRamp())) score += 1;
+        return score;
     }
 
     private double haversineKm(BigDecimal lat1, BigDecimal lon1, BigDecimal lat2, BigDecimal lon2) {
