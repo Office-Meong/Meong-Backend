@@ -12,8 +12,8 @@ public enum Region {
     public String getKtoSigunguCode() {
         return switch (this) {
             case GANGNEUNG -> "1";
-            case CHUNCHEON -> "2";
-            case WONJU -> "3";
+            case CHUNCHEON -> "13";
+            case WONJU -> "9";
         };
     }
 
