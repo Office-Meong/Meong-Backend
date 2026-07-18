@@ -52,6 +52,15 @@ api:
   gwto:
     base-url: https://www.pettravel.kr/api
 
+# AWS S3 (이미지 업로드)
+cloud:
+  aws:
+    s3:
+      bucket: ${S3_BUCKET_NAME}
+      region: ${AWS_REGION:ap-northeast-2}
+      access-key: ${AWS_ACCESS_KEY_ID}
+      secret-key: ${AWS_SECRET_ACCESS_KEY}
+
 # Swagger UI
 springdoc:
   swagger-ui:

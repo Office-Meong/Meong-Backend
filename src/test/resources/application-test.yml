@@ -37,3 +37,11 @@ jwt:
   secret: test-jwt-secret-key-minimum-32-characters!!
   access-token-expiry: 1800000
   refresh-token-expiry: 1209600000
+
+cloud:
+  aws:
+    s3:
+      bucket: test-bucket
+      region: ap-northeast-2
+      access-key: test-access-key
+      secret-key: test-secret-key
