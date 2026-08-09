@@ -3,6 +3,7 @@ package com.officemeong.api.course;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.officemeong.common.config.SecurityConfig;
 import com.officemeong.common.security.JwtAuthenticationFilter;
+import com.officemeong.domain.course.dto.ChecklistItemResponse;
 import com.officemeong.domain.course.dto.CourseCreateRequest;
 import com.officemeong.domain.course.dto.CourseItemResponse;
 import com.officemeong.domain.course.dto.CourseSummaryResponse;
@@ -189,5 +190,67 @@ class CourseControllerTest {
         mockMvc.perform(get("/api/v1/courses/1/items/3/alternatives").with(authAs(1L)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data").isArray());
+    }
+
+    @Test
+    @DisplayName("체크리스트 조회 - 200 OK")
+    void getChecklist_200() throws Exception {
+        ChecklistItemResponse item = ChecklistItemResponse.builder()
+                .id(5L).content("목줄 챙기기").checked(false).displayOrder(1).build();
+        when(courseService.getChecklist(1L, 1L)).thenReturn(List.of(item));
+
+        mockMvc.perform(get("/api/v1/courses/1/checklist").with(authAs(1L)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data[0].content").value("목줄 챙기기"));
+    }
+
+    @Test
+    @DisplayName("체크리스트 항목 추가 - 200 OK")
+    void addChecklistItem_200() throws Exception {
+        ChecklistItemResponse item = ChecklistItemResponse.builder()
+                .id(5L).content("사료 챙기기").checked(false).displayOrder(1).build();
+        when(courseService.addChecklistItem(eq(1L), eq(1L), any())).thenReturn(item);
+
+        mockMvc.perform(post("/api/v1/courses/1/checklist")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"content\":\"사료 챙기기\"}")
+                        .with(authAs(1L)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.content").value("사료 챙기기"));
+    }
+
+    @Test
+    @DisplayName("체크리스트 항목 추가 - 내용 누락 400 Bad Request")
+    void addChecklistItem_내용누락_400() throws Exception {
+        mockMvc.perform(post("/api/v1/courses/1/checklist")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}")
+                        .with(authAs(1L)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("체크리스트 항목 수정 - 200 OK")
+    void updateChecklistItem_200() throws Exception {
+        ChecklistItemResponse item = ChecklistItemResponse.builder()
+                .id(5L).content("목줄 챙기기").checked(true).displayOrder(1).build();
+        when(courseService.updateChecklistItem(eq(1L), eq(1L), eq(5L), any())).thenReturn(item);
+
+        mockMvc.perform(patch("/api/v1/courses/1/checklist/5")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"checked\":true}")
+                        .with(authAs(1L)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.checked").value(true));
+    }
+
+    @Test
+    @DisplayName("체크리스트 항목 삭제 - 200 OK")
+    void deleteChecklistItem_200() throws Exception {
+        doNothing().when(courseService).deleteChecklistItem(1L, 1L, 5L);
+
+        mockMvc.perform(delete("/api/v1/courses/1/checklist/5").with(authAs(1L)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true));
     }
 }

@@ -1,16 +1,22 @@
 package com.officemeong.domain.course.service;
 
+import com.officemeong.domain.congestion.entity.CongestionForecast;
+import com.officemeong.domain.congestion.repository.CongestionForecastRepository;
 import com.officemeong.domain.course.dto.*;
 import com.officemeong.domain.course.entity.Course;
+import com.officemeong.domain.course.entity.CourseChecklistItem;
 import com.officemeong.domain.course.entity.CourseItem;
 import com.officemeong.domain.course.enums.WorkFocusLevel;
+import com.officemeong.domain.course.repository.CourseChecklistItemRepository;
 import com.officemeong.domain.course.repository.CourseItemRepository;
 import com.officemeong.domain.course.repository.CourseRepository;
 import com.officemeong.domain.dog.entity.Dog;
 import com.officemeong.domain.dog.repository.DogRepository;
 import com.officemeong.domain.place.entity.Place;
 import com.officemeong.domain.place.entity.PlacePetCondition;
+import com.officemeong.domain.place.entity.PlaceScore;
 import com.officemeong.domain.place.enums.PlaceType;
+import com.officemeong.domain.place.enums.Region;
 import com.officemeong.domain.place.repository.PlaceRepository;
 import com.officemeong.domain.user.entity.User;
 import com.officemeong.domain.user.repository.UserRepository;
@@ -21,6 +27,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Duration;
+import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -34,9 +41,11 @@ public class CourseService {
 
     private final CourseRepository courseRepository;
     private final CourseItemRepository courseItemRepository;
+    private final CourseChecklistItemRepository checklistItemRepository;
     private final UserRepository userRepository;
     private final DogRepository dogRepository;
     private final PlaceRepository placeRepository;
+    private final CongestionForecastRepository congestionForecastRepository;
 
     // ──────────────────── 코스 생성 ────────────────────
 
@@ -64,8 +73,10 @@ public class CourseService {
                 .name(courseName)
                 .build();
 
+        Integer travelCongestionScore = resolveTravelCongestionScore(
+                request.getRegion(), request.getStartDate(), request.getEndDate());
         Map<PlaceType, List<Place>> candidatesByType = loadCandidates(
-                request.getRegion(), dogWeightKg);
+                request.getRegion(), dogWeightKg, travelCongestionScore);
         Set<Long> usedPlaceIds = new HashSet<>();
 
         for (int day = 1; day <= days; day++) {
@@ -191,6 +202,56 @@ public class CourseService {
                 .toList();
     }
 
+    // ──────────────────── 준비 체크리스트 ────────────────────
+
+    public List<ChecklistItemResponse> getChecklist(Long userId, Long courseId) {
+        Course course = courseRepository.findByIdAndUserId(courseId, userId)
+                .orElseThrow(() -> new NoSuchElementException("코스를 찾을 수 없습니다. id=" + courseId));
+        return checklistItemRepository.findByCourseIdOrderByDisplayOrderAsc(course.getId()).stream()
+                .map(ChecklistItemResponse::from)
+                .toList();
+    }
+
+    @Transactional
+    public ChecklistItemResponse addChecklistItem(Long userId, Long courseId, ChecklistItemRequest request) {
+        Course course = courseRepository.findByIdAndUserId(courseId, userId)
+                .orElseThrow(() -> new NoSuchElementException("코스를 찾을 수 없습니다. id=" + courseId));
+
+        int nextOrder = checklistItemRepository.countByCourseId(course.getId()) + 1;
+        CourseChecklistItem item = CourseChecklistItem.builder()
+                .course(course)
+                .content(request.getContent())
+                .displayOrder(nextOrder)
+                .build();
+        checklistItemRepository.save(item);
+        return ChecklistItemResponse.from(item);
+    }
+
+    @Transactional
+    public ChecklistItemResponse updateChecklistItem(Long userId, Long courseId, Long itemId,
+                                                       ChecklistItemUpdateRequest request) {
+        courseRepository.findByIdAndUserId(courseId, userId)
+                .orElseThrow(() -> new NoSuchElementException("코스를 찾을 수 없습니다. id=" + courseId));
+        CourseChecklistItem item = findChecklistItem(courseId, itemId);
+
+        if (request.getContent() != null) item.updateContent(request.getContent());
+        if (request.getChecked() != null) item.toggleChecked(request.getChecked());
+        return ChecklistItemResponse.from(item);
+    }
+
+    @Transactional
+    public void deleteChecklistItem(Long userId, Long courseId, Long itemId) {
+        courseRepository.findByIdAndUserId(courseId, userId)
+                .orElseThrow(() -> new NoSuchElementException("코스를 찾을 수 없습니다. id=" + courseId));
+        checklistItemRepository.delete(findChecklistItem(courseId, itemId));
+    }
+
+    private CourseChecklistItem findChecklistItem(Long courseId, Long itemId) {
+        return checklistItemRepository.findById(itemId)
+                .filter(i -> i.getCourse().getId().equals(courseId))
+                .orElseThrow(() -> new NoSuchElementException("체크리스트 항목을 찾을 수 없습니다. id=" + itemId));
+    }
+
     // ──────────────────── 내부 유틸 ────────────────────
 
     private BigDecimal resolveDogWeight(Long userId, Long dogId) {
@@ -201,16 +262,55 @@ public class CourseService {
     }
 
     private Map<PlaceType, List<Place>> loadCandidates(
-            com.officemeong.domain.place.enums.Region region, BigDecimal dogWeightKg) {
+            Region region, BigDecimal dogWeightKg, Integer travelCongestionScore) {
         Map<PlaceType, List<Place>> map = new EnumMap<>(PlaceType.class);
         for (PlaceType type : PlaceType.values()) {
             List<Place> places = placeRepository.findByRegionAndPlaceTypeOrderByScore(region, type)
                     .stream()
                     .filter(p -> isWeightAllowed(p, dogWeightKg))
                     .collect(Collectors.toList());
+            if (travelCongestionScore != null) {
+                places.sort(Comparator.comparingInt(
+                        (Place p) -> effectiveScore(p, travelCongestionScore)).reversed());
+            }
             map.put(type, places);
         }
         return map;
+    }
+
+    /**
+     * 여행 기간(startDate~endDate)의 관광지집중률 예측 평균을 조회해 혼잡도 점수(0~15)로 환산.
+     * congestion_forecasts는 지역 단위로만 집계되므로 지역 내 모든 장소에 동일하게 적용됨.
+     * 예측 데이터가 없으면 null을 반환해 place_scores에 저장된 "오늘 기준" 점수를 그대로 사용한다.
+     */
+    private Integer resolveTravelCongestionScore(Region region, LocalDate startDate, LocalDate endDate) {
+        List<CongestionForecast> forecasts = congestionForecastRepository
+                .findByRegionAndBaseYmdBetween(region, startDate, endDate);
+        List<BigDecimal> rates = forecasts.stream()
+                .map(CongestionForecast::getCnctrRate)
+                .filter(Objects::nonNull)
+                .toList();
+        if (rates.isEmpty()) return null;
+
+        double avgRate = rates.stream().mapToDouble(BigDecimal::doubleValue).average().orElseThrow();
+        return mapRateToCongestionScore(avgRate);
+    }
+
+    // CongestionScoreUpdateTasklet.mapRateToScore와 동일한 기준 (SYSTEM_DESIGN.md 3.5)
+    private int mapRateToCongestionScore(double rate) {
+        if (rate < 30) return 15;
+        if (rate < 45) return 12;
+        if (rate < 55) return 9;
+        if (rate < 65) return 6;
+        if (rate < 75) return 3;
+        return 1;
+    }
+
+    /** 여행 날짜 기준 혼잡도로 congestionScore를 치환한 정렬용 점수 */
+    private int effectiveScore(Place place, int travelCongestionScore) {
+        PlaceScore score = place.getScore();
+        if (score == null) return 0;
+        return score.getTotalScore() - score.getCongestionScore() + travelCongestionScore;
     }
 
     private boolean isWeightAllowed(Place place, BigDecimal dogWeightKg) {

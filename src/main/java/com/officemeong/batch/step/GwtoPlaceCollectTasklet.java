@@ -51,13 +51,20 @@ public class GwtoPlaceCollectTasklet implements Tasklet {
         List<GwtoListItem> listItems = gwtoApiClient.fetchList(partCode, areaName);
         log.info("GWTO 목록: {} {} - {}개", region, partCode, listItems.size());
 
-        int count = 0;
+        int count = 0, skipped = 0;
         for (GwtoListItem listItem : listItems) {
             GwtoDetailItem detail = gwtoApiClient.fetchDetail(partCode, listItem.getContentSeq());
             if (detail == null) continue;
 
             PlaceType placeType = resolveType(detail, partCode);
             boolean isNew = !placeRepository.existsBySourceTypeAndSourceId(SourceType.GWTO, detail.getContentSeq());
+
+            // KTO에서 이미 동일 이름으로 수집된 장소면 중복 생성하지 않고 스킵
+            if (isNew && isDuplicateOfOtherSource(region, detail.getTitle(), SourceType.GWTO)) {
+                log.info("GWTO 중복 스킵 (KTO 기존 수집): {} - {}", region, detail.getTitle());
+                skipped++;
+                continue;
+            }
 
             Place place = placeRepository.findBySourceTypeAndSourceId(SourceType.GWTO, detail.getContentSeq())
                     .orElseGet(() -> Place.builder()
@@ -116,7 +123,14 @@ public class GwtoPlaceCollectTasklet implements Tasklet {
             }
             count++;
         }
+        log.info("GWTO 수집 - {} {} 완료: 처리 {}개, 중복 스킵 {}개", region, partCode, count, skipped);
         return count;
+    }
+
+    private boolean isDuplicateOfOtherSource(Region region, String name, SourceType sourceType) {
+        if (!hasValue(name)) return false;
+        return placeRepository.findFirstByRegionAndNameIgnoreCaseAndSourceTypeNot(region, name.trim(), sourceType)
+                .isPresent();
     }
 
     private PlaceType resolveType(GwtoDetailItem detail, String partCode) {

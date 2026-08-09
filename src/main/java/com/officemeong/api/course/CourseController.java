@@ -137,4 +137,69 @@ public class CourseController {
         return ResponseEntity.ok(ApiResponse.ok(
                 courseService.getAlternatives(userId, courseId, itemId)));
     }
+
+    @Operation(summary = "체크리스트 조회", description = "코스의 준비 체크리스트 항목을 표시 순서대로 반환합니다.")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "목록 반환"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "인증 필요"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "코스를 찾을 수 없음")
+    })
+    @GetMapping("/{courseId}/checklist")
+    public ResponseEntity<ApiResponse<List<ChecklistItemResponse>>> getChecklist(
+            @Parameter(description = "코스 ID", example = "1") @PathVariable Long courseId,
+            @AuthenticationPrincipal Long userId
+    ) {
+        return ResponseEntity.ok(ApiResponse.ok(courseService.getChecklist(userId, courseId)));
+    }
+
+    @Operation(summary = "체크리스트 항목 추가", description = "코스에 준비물/할 일 체크리스트 항목을 추가합니다.")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "추가 성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "내용 누락"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "인증 필요"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "코스를 찾을 수 없음")
+    })
+    @PostMapping("/{courseId}/checklist")
+    public ResponseEntity<ApiResponse<ChecklistItemResponse>> addChecklistItem(
+            @Parameter(description = "코스 ID", example = "1") @PathVariable Long courseId,
+            @Valid @RequestBody ChecklistItemRequest request,
+            @AuthenticationPrincipal Long userId
+    ) {
+        return ResponseEntity.ok(ApiResponse.ok(
+                courseService.addChecklistItem(userId, courseId, request)));
+    }
+
+    @Operation(summary = "체크리스트 항목 수정",
+            description = "체크리스트 항목의 내용을 수정하거나 체크 여부를 토글합니다. null 필드는 변경하지 않습니다.")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "수정 성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "인증 필요"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "코스 또는 항목을 찾을 수 없음")
+    })
+    @PatchMapping("/{courseId}/checklist/{itemId}")
+    public ResponseEntity<ApiResponse<ChecklistItemResponse>> updateChecklistItem(
+            @Parameter(description = "코스 ID", example = "1") @PathVariable Long courseId,
+            @Parameter(description = "체크리스트 항목 ID", example = "5") @PathVariable Long itemId,
+            @RequestBody ChecklistItemUpdateRequest request,
+            @AuthenticationPrincipal Long userId
+    ) {
+        return ResponseEntity.ok(ApiResponse.ok(
+                courseService.updateChecklistItem(userId, courseId, itemId, request)));
+    }
+
+    @Operation(summary = "체크리스트 항목 삭제")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "삭제 성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "인증 필요"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "코스 또는 항목을 찾을 수 없음")
+    })
+    @DeleteMapping("/{courseId}/checklist/{itemId}")
+    public ResponseEntity<ApiResponse<Void>> deleteChecklistItem(
+            @Parameter(description = "코스 ID", example = "1") @PathVariable Long courseId,
+            @Parameter(description = "체크리스트 항목 ID", example = "5") @PathVariable Long itemId,
+            @AuthenticationPrincipal Long userId
+    ) {
+        courseService.deleteChecklistItem(userId, courseId, itemId);
+        return ResponseEntity.ok(ApiResponse.ok(null));
+    }
 }

@@ -23,6 +23,9 @@ public interface PlaceRepository extends JpaRepository<Place, Long> {
 
     List<Place> findByRegion(Region region);
 
+    // KTO/GWTO 중복 장소 감지: 같은 지역에 다른 소스로 이미 수집된 동일 이름의 장소가 있는지 확인
+    Optional<Place> findFirstByRegionAndNameIgnoreCaseAndSourceTypeNot(Region region, String name, SourceType excludedSourceType);
+
     // 코스 생성용: 지역+유형으로 장소를 펫워크지수 내림차순 조회 (petCondition fetch join)
     @Query("SELECT DISTINCT p FROM Place p LEFT JOIN FETCH p.score s LEFT JOIN FETCH p.petCondition " +
            "WHERE p.region = :region AND p.placeType = :placeType " +

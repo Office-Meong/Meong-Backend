@@ -42,6 +42,13 @@ jwt:
 openai:
   api-key: ${OPENAI_API_KEY:}
 
+# 앱 정책/문의 링크 (플레이스홀더 — 실제 URL 확정 후 환경변수로 교체 필요)
+app:
+  policy:
+    terms-url: ${TERMS_URL:https://officemeong.example.com/terms}
+    privacy-url: ${PRIVACY_URL:https://officemeong.example.com/privacy}
+    inquiry-url: ${INQUIRY_URL:https://officemeong.example.com/inquiry}
+
 # 외부 API 설정
 api:
   kto:

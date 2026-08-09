@@ -43,7 +43,7 @@ public class KtoPlaceCollectTasklet implements Tasklet {
 
     @Override
     public RepeatStatus execute(StepContribution contribution, ChunkContext chunkContext) {
-        int saved = 0, updated = 0;
+        int saved = 0, updated = 0, skipped = 0;
 
         for (Region region : Region.values()) {
             String sigunguCode = region.getKtoSigunguCode();
@@ -58,6 +58,13 @@ public class KtoPlaceCollectTasklet implements Tasklet {
                 for (KtoAreaBasedItem item : items) {
                     PlaceType placeType = resolveWorkPlace(item, baseType);
                     boolean isNew = !placeRepository.existsBySourceTypeAndSourceId(SourceType.KTO, item.getContentid());
+
+                    // GWTO에서 이미 동일 이름으로 수집된 장소면 중복 생성하지 않고 스킵 (GWTO 동반조건 데이터가 더 정확함)
+                    if (isNew && isDuplicateOfOtherSource(region, item.getTitle(), SourceType.KTO)) {
+                        log.info("KTO 중복 스킵 (GWTO 기존 수집): {} - {}", region, item.getTitle());
+                        skipped++;
+                        continue;
+                    }
 
                     Place place = placeRepository.findBySourceTypeAndSourceId(SourceType.KTO, item.getContentid())
                             .orElseGet(() -> Place.builder()
@@ -122,8 +129,14 @@ public class KtoPlaceCollectTasklet implements Tasklet {
             }
         }
 
-        log.info("KTO 수집 완료 - 신규: {}, 업데이트: {}", saved, updated);
+        log.info("KTO 수집 완료 - 신규: {}, 업데이트: {}, 중복 스킵: {}", saved, updated, skipped);
         return RepeatStatus.FINISHED;
+    }
+
+    private boolean isDuplicateOfOtherSource(Region region, String name, SourceType sourceType) {
+        if (!hasValue(name)) return false;
+        return placeRepository.findFirstByRegionAndNameIgnoreCaseAndSourceTypeNot(region, name.trim(), sourceType)
+                .isPresent();
     }
 
     private PlaceType resolveWorkPlace(KtoAreaBasedItem item, PlaceType baseType) {

@@ -13,5 +13,7 @@ public interface CourseRepository extends JpaRepository<Course, Long> {
     @Query("SELECT c FROM Course c JOIN FETCH c.items i JOIN FETCH i.place WHERE c.id = :id AND c.user.id = :userId")
     Optional<Course> findByIdAndUserIdWithItems(@Param("id") Long id, @Param("userId") Long userId);
 
+    Optional<Course> findByIdAndUserId(Long id, Long userId);
+
     List<Course> findByUserIdOrderByCreatedAtDesc(Long userId);
 }
