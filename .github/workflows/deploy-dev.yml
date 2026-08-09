@@ -58,8 +58,8 @@ jobs:
             echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
 
             # 앱 런타임 환경변수 파일 동기화 (GitHub Secret ENV_FILE 전체 내용을 그대로 기록)
-            mkdir -p /home/ec2-user/app
-            cat > /home/ec2-user/app/.env << 'ENVEOF'
+            mkdir -p /home/ubuntu/app
+            cat > /home/ubuntu/app/.env << 'ENVEOF'
             ${{ secrets.ENV_FILE }}
             ENVEOF
 
@@ -73,7 +73,7 @@ jobs:
             # 새 컨테이너 실행 (EC2 .env 파일에서 시크릿 로드)
             docker run -d \
               --name officemeong-app \
-              --env-file /home/ec2-user/app/.env \
+              --env-file /home/ubuntu/app/.env \
               -p 8080:8080 \
               --restart always \
               $DOCKER_IMAGE
