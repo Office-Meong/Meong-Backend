@@ -6,11 +6,8 @@ import io.swagger.v3.oas.models.info.Contact;
 import io.swagger.v3.oas.models.info.Info;
 import io.swagger.v3.oas.models.security.SecurityRequirement;
 import io.swagger.v3.oas.models.security.SecurityScheme;
-import io.swagger.v3.oas.models.servers.Server;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-
-import java.util.List;
 
 @Configuration
 public class SwaggerConfig {
@@ -53,10 +50,6 @@ public class SwaggerConfig {
                         .contact(new Contact()
                                 .name("OfficeMeong 개발팀")
                                 .email("a01057571492@gmail.com")))
-                .servers(List.of(
-                        new Server().url("http://localhost:8080").description("로컬 개발 서버"),
-                        new Server().url("https://api.officemeong.com").description("운영 서버")
-                ))
                 .components(new Components()
                         .addSecuritySchemes(BEARER_AUTH, new SecurityScheme()
                                 .type(SecurityScheme.Type.HTTP)
