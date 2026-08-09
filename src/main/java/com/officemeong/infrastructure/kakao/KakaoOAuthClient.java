@@ -10,6 +10,7 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.reactive.function.BodyInserters;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
 
 @Slf4j
 @Component
@@ -23,6 +24,10 @@ public class KakaoOAuthClient {
 
     @Value("${kakao.redirect-uri}")
     private String redirectUri;
+
+    // 카카오 개발자 콘솔 > 카카오 로그인 > 보안 탭에서 Client Secret을 활성화한 경우에만 필요
+    @Value("${kakao.client-secret:}")
+    private String clientSecret;
 
     public KakaoOAuthClient(WebClient.Builder webClientBuilder) {
         this.authClient = webClientBuilder.clone()
@@ -39,6 +44,9 @@ public class KakaoOAuthClient {
         params.add("client_id", clientId);
         params.add("redirect_uri", redirectUri);
         params.add("code", authorizationCode);
+        if (clientSecret != null && !clientSecret.isBlank()) {
+            params.add("client_secret", clientSecret);
+        }
 
         return authClient.post()
                 .uri("/oauth/token")
@@ -46,7 +54,8 @@ public class KakaoOAuthClient {
                 .body(BodyInserters.fromFormData(params))
                 .retrieve()
                 .bodyToMono(KakaoTokenResponse.class)
-                .doOnError(e -> log.error("카카오 토큰 발급 실패", e))
+                .doOnError(WebClientResponseException.class,
+                        e -> log.error("카카오 토큰 발급 실패 - status={}, body={}", e.getStatusCode(), e.getResponseBodyAsString()))
                 .block();
     }
 
@@ -56,7 +65,8 @@ public class KakaoOAuthClient {
                 .header("Authorization", "Bearer " + kakaoAccessToken)
                 .retrieve()
                 .bodyToMono(KakaoUserInfoResponse.class)
-                .doOnError(e -> log.error("카카오 사용자 정보 조회 실패", e))
+                .doOnError(WebClientResponseException.class,
+                        e -> log.error("카카오 사용자 정보 조회 실패 - status={}, body={}", e.getStatusCode(), e.getResponseBodyAsString()))
                 .block();
     }
 }

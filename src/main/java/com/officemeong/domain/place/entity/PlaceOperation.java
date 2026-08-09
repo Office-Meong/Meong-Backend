@@ -45,4 +45,13 @@ public class PlaceOperation {
         this.parkingAvailable = parkingAvailable;
         this.indoorOutdoorType = indoorOutdoorType;
     }
+
+    public void update(String operatingHours, String closedDays, String usageFee,
+                        Boolean parkingAvailable, String indoorOutdoorType) {
+        this.operatingHours = operatingHours;
+        this.closedDays = closedDays;
+        this.usageFee = usageFee;
+        this.parkingAvailable = parkingAvailable;
+        this.indoorOutdoorType = indoorOutdoorType;
+    }
 }

@@ -1,5 +1,6 @@
 package com.officemeong.common.config;
 
+import com.officemeong.common.security.AdminApiKeyFilter;
 import com.officemeong.common.security.JwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
@@ -21,6 +22,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final AdminApiKeyFilter adminApiKeyFilter;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -45,6 +47,7 @@ public class SecurityConfig {
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(adminApiKeyFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();
     }
 
@@ -59,6 +62,14 @@ public class SecurityConfig {
     public FilterRegistrationBean<JwtAuthenticationFilter> jwtFilterRegistration(
             JwtAuthenticationFilter filter) {
         FilterRegistrationBean<JwtAuthenticationFilter> bean = new FilterRegistrationBean<>(filter);
+        bean.setEnabled(false);
+        return bean;
+    }
+
+    @Bean
+    public FilterRegistrationBean<AdminApiKeyFilter> adminApiKeyFilterRegistration(
+            AdminApiKeyFilter filter) {
+        FilterRegistrationBean<AdminApiKeyFilter> bean = new FilterRegistrationBean<>(filter);
         bean.setEnabled(false);
         return bean;
     }

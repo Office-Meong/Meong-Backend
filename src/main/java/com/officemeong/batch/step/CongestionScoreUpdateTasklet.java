@@ -14,7 +14,6 @@ import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
 import java.util.List;
-import java.util.OptionalDouble;
 
 @Slf4j
 @Component
@@ -30,8 +29,8 @@ public class CongestionScoreUpdateTasklet implements Tasklet {
         int updated = 0;
 
         for (Region region : Region.values()) {
-            OptionalDouble avgRate = forecastRepository.findAvgRateByRegionAndDate(region, today);
-            int score = avgRate.isPresent() ? mapRateToScore(avgRate.getAsDouble()) : 8;
+            Double avgRate = forecastRepository.findAvgRateByRegionAndDate(region, today);
+            int score = avgRate != null ? mapRateToScore(avgRate) : 8;
 
             List<PlaceScore> scores = scoreRepository.findByPlaceRegion(region);
             for (PlaceScore ps : scores) {
@@ -42,7 +41,7 @@ public class CongestionScoreUpdateTasklet implements Tasklet {
 
             log.info("혼잡도 점수 업데이트: {} - 평균 {}% → {}점, {}개 장소",
                     region,
-                    avgRate.isPresent() ? String.format("%.1f", avgRate.getAsDouble()) : "없음",
+                    avgRate != null ? String.format("%.1f", avgRate) : "없음",
                     score, scores.size());
         }
 

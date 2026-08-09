@@ -2,6 +2,10 @@ spring:
   application:
     name: OfficeMeong
 
+  # 프로필 미지정 시 로컬 개발 기본값. 배포 환경은 항상 SPRING_PROFILES_ACTIVE로 명시적으로 덮어씀
+  profiles:
+    active: local
+
   # 공통 JPA 설정
   jpa:
     open-in-view: false
@@ -31,6 +35,7 @@ server:
 kakao:
   client-id: ${KAKAO_CLIENT_ID}
   redirect-uri: ${KAKAO_REDIRECT_URI}
+  client-secret: ${KAKAO_CLIENT_SECRET:}
 
 # JWT
 jwt:
@@ -48,6 +53,10 @@ app:
     terms-url: ${TERMS_URL:https://officemeong.example.com/terms}
     privacy-url: ${PRIVACY_URL:https://officemeong.example.com/privacy}
     inquiry-url: ${INQUIRY_URL:https://officemeong.example.com/inquiry}
+
+# 관리자 배치 수동 실행 API 인증 키 (X-Admin-Key 헤더)
+admin:
+  api-key: ${ADMIN_API_KEY:}
 
 # 외부 API 설정
 api:

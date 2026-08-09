@@ -2,7 +2,15 @@ package com.officemeong.batch.step;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.officemeong.domain.place.entity.Place;
+import com.officemeong.domain.place.entity.PlaceAccessibility;
+import com.officemeong.domain.place.entity.PlaceScore;
+import com.officemeong.domain.place.enums.PlaceType;
 import com.officemeong.domain.place.enums.Region;
+import com.officemeong.domain.place.enums.SourceType;
+import com.officemeong.domain.place.repository.PlaceAccessibilityRepository;
+import com.officemeong.domain.place.repository.PlaceRepository;
+import com.officemeong.domain.place.repository.PlaceScoreRepository;
 import com.officemeong.domain.walk.entity.WalkCourse;
 import com.officemeong.domain.walk.repository.WalkCourseRepository;
 import com.officemeong.infrastructure.kto.dto.DurunubiCourseItem;
@@ -26,6 +34,8 @@ import javax.xml.parsers.DocumentBuilderFactory;
 import java.io.StringReader;
 import java.math.BigDecimal;
 import java.net.URI;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -36,6 +46,9 @@ public class DurunubiCollectTasklet implements Tasklet {
 
     private final WebClient ktoWebClient;
     private final WalkCourseRepository walkCourseRepository;
+    private final PlaceRepository placeRepository;
+    private final PlaceAccessibilityRepository accessibilityRepository;
+    private final PlaceScoreRepository scoreRepository;
     private final ObjectMapper objectMapper;
 
     @Value("${api.kto.service-key}")
@@ -67,6 +80,8 @@ public class DurunubiCollectTasklet implements Tasklet {
                             .distanceKm(parseDistance(course.getCrsDstnc()))
                             .build())
             );
+            // 코스 생성 로직(PlaceType.WALK 슬롯)이 참조할 수 있도록 Place로도 동기화
+            upsertWalkPlace(course, region, coords);
             saved++;
         }
 
@@ -80,7 +95,7 @@ public class DurunubiCollectTasklet implements Tasklet {
 
         while (true) {
             URI uri = UriComponentsBuilder.fromHttpUrl(baseUrl + "/Durunubi/courseList")
-                    .queryParam("serviceKey", serviceKey)
+                    .queryParam("serviceKey", URLEncoder.encode(serviceKey, StandardCharsets.UTF_8))
                     .queryParam("MobileOS", "ETC")
                     .queryParam("MobileApp", "OfficeMeong")
                     .queryParam("_type", "json")
@@ -151,6 +166,32 @@ public class DurunubiCollectTasklet implements Tasklet {
         } catch (Exception e) {
             log.warn("GPX 파싱 실패 - {}: {}", gpxPath, e.getMessage());
             return null;
+        }
+    }
+
+    private void upsertWalkPlace(DurunubiCourseItem course, Region region, BigDecimal[] coords) {
+        boolean isNew = !placeRepository.existsBySourceTypeAndSourceId(SourceType.DURUNUBI, course.getCrsIdx());
+        Place place = placeRepository.findBySourceTypeAndSourceId(SourceType.DURUNUBI, course.getCrsIdx())
+                .orElseGet(() -> Place.builder()
+                        .sourceType(SourceType.DURUNUBI)
+                        .sourceId(course.getCrsIdx())
+                        .placeType(PlaceType.WALK)
+                        .region(region)
+                        .name(course.getCrsKorNm())
+                        .latitude(coords[0])
+                        .longitude(coords[1])
+                        .overview(course.getCrsSummary())
+                        .build());
+
+        if (!isNew) {
+            place.update(course.getCrsKorNm(), place.getAddress(), coords[0], coords[1],
+                    place.getTel(), place.getHomepage(), course.getCrsSummary());
+        }
+        place = placeRepository.save(place);
+
+        if (isNew) {
+            accessibilityRepository.save(PlaceAccessibility.createDefault(place));
+            scoreRepository.save(PlaceScore.createDefault(place));
         }
     }
 

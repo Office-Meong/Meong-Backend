@@ -16,6 +16,7 @@ import java.util.List;
 public class SwaggerConfig {
 
     private static final String BEARER_AUTH = "BearerAuth";
+    private static final String ADMIN_API_KEY = "AdminApiKey";
 
     @Bean
     public OpenAPI openAPI() {
@@ -62,6 +63,11 @@ public class SwaggerConfig {
                                 .scheme("bearer")
                                 .bearerFormat("JWT")
                                 .description("로그인 후 발급받은 Access Token을 입력하세요 (Bearer 접두사 없이 토큰만 입력)"))
+                        .addSecuritySchemes(ADMIN_API_KEY, new SecurityScheme()
+                                .type(SecurityScheme.Type.APIKEY)
+                                .in(SecurityScheme.In.HEADER)
+                                .name("X-Admin-Key")
+                                .description("관리자 배치 API 전용 키 (ADMIN_API_KEY 환경변수 값)"))
                 )
                 .addSecurityItem(new SecurityRequirement().addList(BEARER_AUTH));
     }

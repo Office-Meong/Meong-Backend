@@ -19,6 +19,6 @@ public interface CongestionForecastRepository extends JpaRepository<CongestionFo
     List<CongestionForecast> findByRegionAndBaseYmdBetween(Region region, LocalDate from, LocalDate to);
 
     @Query("SELECT AVG(c.cnctrRate) FROM CongestionForecast c WHERE c.region = :region AND c.baseYmd = :date")
-    java.util.OptionalDouble findAvgRateByRegionAndDate(@Param("region") Region region,
-                                                        @Param("date") LocalDate date);
+    Double findAvgRateByRegionAndDate(@Param("region") Region region,
+                                       @Param("date") LocalDate date);
 }

@@ -97,25 +97,39 @@ public class KtoPlaceCollectTasklet implements Tasklet {
                     // 펫 조건
                     KtoPetDetailItem pet = ktoApiClient.fetchPetDetail(item.getContentid());
                     if (pet != null) {
-                        PlacePetCondition condition = PlacePetCondition.builder()
-                                .place(place)
-                                .acmpyType(AcmpyType.fromKto(pet.getAcmpyTypeCd()))
-                                .companionConditions(pet.getAcmpyNeedMtr())
-                                .availableFacilities(mergeText(pet.getRelaPosesFclty(), pet.getRelaFrnshPrdlst()))
-                                .cautions(mergeText(pet.getRelaAcdntRiskMtr(), pet.getEtcAcmpyInfo()))
-                                .build();
-                        petConditionRepository.save(condition);
+                        AcmpyType acmpyType = AcmpyType.fromKto(pet.getAcmpyTypeCd());
+                        String availableFacilities = mergeText(pet.getRelaPosesFclty(), pet.getRelaFrnshPrdlst());
+                        String cautions = mergeText(pet.getRelaAcdntRiskMtr(), pet.getEtcAcmpyInfo());
+                        Place finalPlace = place;
+                        petConditionRepository.findById(place.getId())
+                                .ifPresentOrElse(
+                                        existing -> existing.update(acmpyType, existing.getPetWeightLimitKg(),
+                                                existing.getCatAllowed(), existing.getBathAvailable(),
+                                                pet.getAcmpyNeedMtr(), availableFacilities, cautions),
+                                        () -> petConditionRepository.save(PlacePetCondition.builder()
+                                                .place(finalPlace)
+                                                .acmpyType(acmpyType)
+                                                .companionConditions(pet.getAcmpyNeedMtr())
+                                                .availableFacilities(availableFacilities)
+                                                .cautions(cautions)
+                                                .build()));
                     }
 
                     // 운영 정보
                     KtoIntroItem intro = ktoApiClient.fetchIntro(item.getContentid(), contentTypeId);
                     if (intro != null) {
-                        operationRepository.save(PlaceOperation.builder()
-                                .place(place)
-                                .operatingHours(intro.getOperatingHours())
-                                .closedDays(intro.getClosedDays())
-                                .parkingAvailable(intro.getParkingAvailable())
-                                .build());
+                        Place finalPlace = place;
+                        operationRepository.findById(place.getId())
+                                .ifPresentOrElse(
+                                        existing -> existing.update(intro.getOperatingHours(), intro.getClosedDays(),
+                                                existing.getUsageFee(), intro.getParkingAvailable(),
+                                                existing.getIndoorOutdoorType()),
+                                        () -> operationRepository.save(PlaceOperation.builder()
+                                                .place(finalPlace)
+                                                .operatingHours(intro.getOperatingHours())
+                                                .closedDays(intro.getClosedDays())
+                                                .parkingAvailable(intro.getParkingAvailable())
+                                                .build()));
                     }
 
                     // 접근성/점수 초기값 (신규만)

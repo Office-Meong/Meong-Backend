@@ -19,6 +19,8 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import java.math.BigDecimal;
 import java.net.URI;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -91,8 +93,8 @@ public class CongestionCollectTasklet implements Tasklet {
         int page = 1;
 
         while (true) {
-            URI uri = UriComponentsBuilder.fromHttpUrl(baseUrl + "/TarRtheDatInq/getCnctrRateInqs")
-                    .queryParam("serviceKey", serviceKey)
+            URI uri = UriComponentsBuilder.fromHttpUrl(baseUrl + "/TatsCnctrRateService/tatsCnctrRatedList")
+                    .queryParam("serviceKey", URLEncoder.encode(serviceKey, StandardCharsets.UTF_8))
                     .queryParam("MobileOS", "ETC")
                     .queryParam("MobileApp", "OfficeMeong")
                     .queryParam("_type", "json")

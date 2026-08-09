@@ -18,7 +18,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
-@Tag(name = "AI 추천", description = "Claude AI 기반 반려동물 동반 장소 추천 API (인증 필요)")
+@Tag(name = "AI 추천", description = "OpenAI(gpt-4o-mini) 기반 반려동물 동반 장소 추천 API (인증 필요)")
 @RestController
 @RequestMapping("/api/v1/recommend")
 @RequiredArgsConstructor
@@ -28,7 +28,7 @@ public class RecommendController {
 
     @Operation(
             summary = "AI 장소 추천",
-            description = "반려견 정보·즐겨찾기·리뷰 이력을 바탕으로 Claude AI가 방문 장소 3곳을 한국어 추천 이유와 함께 반환합니다. " +
+            description = "반려견 정보·즐겨찾기·리뷰 이력을 바탕으로 OpenAI(gpt-4o-mini)가 방문 장소 3곳을 한국어 추천 이유와 함께 반환합니다. " +
                           "API 키 미설정 또는 AI 오류 시 점수 기반 상위 3곳으로 폴백됩니다."
     )
     @ApiResponses({

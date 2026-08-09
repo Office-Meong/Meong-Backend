@@ -14,6 +14,8 @@ import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URI;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -41,13 +43,17 @@ public class KtoPetApiClient {
     private static final String AREA_CODE = "32";
     private static final int PAGE_SIZE = 100;
 
+    private String encodedServiceKey() {
+        return URLEncoder.encode(serviceKey, StandardCharsets.UTF_8);
+    }
+
     public List<KtoAreaBasedItem> fetchAreaBasedList(String sigunguCode, String contentTypeId) {
         List<KtoAreaBasedItem> result = new ArrayList<>();
         int page = 1;
 
         while (true) {
             URI uri = UriComponentsBuilder.fromHttpUrl(baseUrl + "/KorPetTourService2/areaBasedList2")
-                    .queryParam("serviceKey", serviceKey)
+                    .queryParam("serviceKey", encodedServiceKey())
                     .queryParam("MobileOS", mobileOs)
                     .queryParam("MobileApp", mobileApp)
                     .queryParam("_type", "json")
@@ -77,7 +83,7 @@ public class KtoPetApiClient {
 
     public KtoPetDetailItem fetchPetDetail(String contentId) {
         URI uri = UriComponentsBuilder.fromHttpUrl(baseUrl + "/KorPetTourService2/detailPetTour2")
-                .queryParam("serviceKey", serviceKey)
+                .queryParam("serviceKey", encodedServiceKey())
                 .queryParam("MobileOS", mobileOs)
                 .queryParam("MobileApp", mobileApp)
                 .queryParam("_type", "json")
@@ -97,7 +103,7 @@ public class KtoPetApiClient {
 
     public KtoIntroItem fetchIntro(String contentId, String contentTypeId) {
         URI uri = UriComponentsBuilder.fromHttpUrl(baseUrl + "/KorService2/detailIntro2")
-                .queryParam("serviceKey", serviceKey)
+                .queryParam("serviceKey", encodedServiceKey())
                 .queryParam("MobileOS", mobileOs)
                 .queryParam("MobileApp", mobileApp)
                 .queryParam("_type", "json")

@@ -16,6 +16,7 @@ import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 
 @Slf4j
 @Component
@@ -31,7 +32,15 @@ public class GwtoPlaceCollectTasklet implements Tasklet {
     private final PlaceScoreRepository scoreRepository;
 
     private static final String FOOD_PART_CODE = "PC01";
-    private static final String HOSPITAL_PART_CODE = "PC05";
+
+    // 강원 반려동물 동반관광 API 분야 코드 (활용 가이드 기준): PC01 식음료, PC02 숙박, PC03 관광지, PC04 체험, PC05 동물병원
+    private static final Map<String, PlaceType> PART_TYPE_MAP = Map.of(
+            "PC01", PlaceType.FOOD,
+            "PC02", PlaceType.STAY,
+            "PC03", PlaceType.TOUR,
+            "PC04", PlaceType.TOUR,
+            "PC05", PlaceType.HOSPITAL
+    );
 
     @Override
     public RepeatStatus execute(StepContribution contribution, ChunkContext chunkContext) {
@@ -39,8 +48,9 @@ public class GwtoPlaceCollectTasklet implements Tasklet {
 
         for (Region region : Region.values()) {
             String areaName = extractAreaName(region);
-            total += collectByPartCode(FOOD_PART_CODE, region, areaName);
-            total += collectByPartCode(HOSPITAL_PART_CODE, region, areaName);
+            for (String partCode : PART_TYPE_MAP.keySet()) {
+                total += collectByPartCode(partCode, region, areaName);
+            }
         }
 
         log.info("GWTO 수집 완료 - 총: {}개", total);
@@ -82,6 +92,7 @@ public class GwtoPlaceCollectTasklet implements Tasklet {
                             .build());
 
             place = placeRepository.save(place);
+            Place finalPlace = place;
 
             // 이미지
             if (detail.getImageList() != null && !detail.getImageList().isEmpty()) {
@@ -97,25 +108,38 @@ public class GwtoPlaceCollectTasklet implements Tasklet {
             }
 
             // 반려동물 조건
-            petConditionRepository.save(PlacePetCondition.builder()
-                    .place(place)
-                    .acmpyType(AcmpyType.fromGwtoInOutFlag(detail.getInOutFlag()))
-                    .petWeightLimitKg(parseWeight(detail.getPetWeight()))
-                    .catAllowed("Y".equalsIgnoreCase(detail.getCatFlag()))
-                    .bathAvailable("Y".equalsIgnoreCase(detail.getBathFlag()))
-                    .companionConditions(detail.getPolicyCautions())
-                    .availableFacilities(mergeText(detail.getMainFacility(), detail.getPetFacility()))
-                    .cautions(detail.getPolicyCautions())
-                    .build());
+            AcmpyType acmpyType = AcmpyType.fromGwtoInOutFlag(detail.getInOutFlag());
+            Integer petWeightLimitKg = parseWeight(detail.getPetWeight());
+            boolean catAllowed = "Y".equalsIgnoreCase(detail.getCatFlag());
+            boolean bathAvailable = "Y".equalsIgnoreCase(detail.getBathFlag());
+            String availableFacilities = mergeText(detail.getMainFacility(), detail.getPetFacility());
+            petConditionRepository.findById(place.getId())
+                    .ifPresentOrElse(
+                            existing -> existing.update(acmpyType, petWeightLimitKg, catAllowed, bathAvailable,
+                                    detail.getPolicyCautions(), availableFacilities, detail.getPolicyCautions()),
+                            () -> petConditionRepository.save(PlacePetCondition.builder()
+                                    .place(finalPlace)
+                                    .acmpyType(acmpyType)
+                                    .petWeightLimitKg(petWeightLimitKg)
+                                    .catAllowed(catAllowed)
+                                    .bathAvailable(bathAvailable)
+                                    .companionConditions(detail.getPolicyCautions())
+                                    .availableFacilities(availableFacilities)
+                                    .cautions(detail.getPolicyCautions())
+                                    .build()));
 
             // 운영 정보
-            operationRepository.save(PlaceOperation.builder()
-                    .place(place)
-                    .operatingHours(detail.getUsedTime())
-                    .usageFee(detail.getUsedCost())
-                    .parkingAvailable(detail.isParkingAvailable())
-                    .indoorOutdoorType(detail.getInOutFlag())
-                    .build());
+            operationRepository.findById(place.getId())
+                    .ifPresentOrElse(
+                            existing -> existing.update(detail.getUsedTime(), null, detail.getUsedCost(),
+                                    detail.isParkingAvailable(), detail.getInOutFlag()),
+                            () -> operationRepository.save(PlaceOperation.builder()
+                                    .place(finalPlace)
+                                    .operatingHours(detail.getUsedTime())
+                                    .usageFee(detail.getUsedCost())
+                                    .parkingAvailable(detail.isParkingAvailable())
+                                    .indoorOutdoorType(detail.getInOutFlag())
+                                    .build()));
 
             if (isNew) {
                 accessibilityRepository.save(PlaceAccessibility.createDefault(place));
@@ -134,8 +158,9 @@ public class GwtoPlaceCollectTasklet implements Tasklet {
     }
 
     private PlaceType resolveType(GwtoDetailItem detail, String partCode) {
-        if (HOSPITAL_PART_CODE.equals(partCode)) return PlaceType.HOSPITAL;
-        return detail.isCafeKeyword() ? PlaceType.WORK_PLACE : PlaceType.FOOD;
+        PlaceType baseType = PART_TYPE_MAP.getOrDefault(partCode, PlaceType.TOUR);
+        if (FOOD_PART_CODE.equals(partCode) && detail.isCafeKeyword()) return PlaceType.WORK_PLACE;
+        return baseType;
     }
 
     private String extractAreaName(Region region) {

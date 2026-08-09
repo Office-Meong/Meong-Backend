@@ -65,4 +65,15 @@ public class PlacePetCondition {
         this.availableFacilities = availableFacilities;
         this.cautions = cautions;
     }
+
+    public void update(AcmpyType acmpyType, Integer petWeightLimitKg, Boolean catAllowed, Boolean bathAvailable,
+                        String companionConditions, String availableFacilities, String cautions) {
+        this.acmpyType = acmpyType;
+        this.petWeightLimitKg = petWeightLimitKg;
+        this.catAllowed = catAllowed != null ? catAllowed : false;
+        this.bathAvailable = bathAvailable != null ? bathAvailable : false;
+        this.companionConditions = companionConditions;
+        this.availableFacilities = availableFacilities;
+        this.cautions = cautions;
+    }
 }
