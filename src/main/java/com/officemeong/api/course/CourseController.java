@@ -89,6 +89,62 @@ public class CourseController {
                 courseService.updateCourseItem(userId, courseId, itemId, request)));
     }
 
+    @Operation(summary = "코스 아이템 순서 변경",
+            description = "드래그 앤 드롭 등으로 바뀐 특정 일차의 아이템 순서를 반영합니다.\n\n" +
+                    "`itemIds`에는 해당 일차에 속한 **모든** 아이템 ID를 원하는 순서대로 빠짐없이 나열해야 합니다 " +
+                    "(부분 목록이거나 실제 구성과 다르면 400 오류). 일차 간 이동은 지원하지 않습니다.")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "순서 변경된 코스 반환"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "요청한 아이템 목록이 실제 구성과 불일치"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "인증 필요"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "코스를 찾을 수 없음")
+    })
+    @PatchMapping("/{courseId}/items/reorder")
+    public ResponseEntity<ApiResponse<CourseResponse>> reorderCourseItems(
+            @Parameter(description = "코스 ID", example = "1") @PathVariable Long courseId,
+            @Valid @RequestBody CourseItemReorderRequest request,
+            @AuthenticationPrincipal Long userId
+    ) {
+        return ResponseEntity.ok(ApiResponse.ok(
+                courseService.reorderCourseItems(userId, courseId, request)));
+    }
+
+    @Operation(summary = "코스 아이템 추가",
+            description = "특정 일차에 새 장소를 코스 아이템으로 추가합니다. `visitOrder`를 지정하면 그 위치에 삽입하고, " +
+                    "생략하거나 범위를 벗어나면 해당 일차의 맨 뒤에 추가합니다.")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "추가된 코스 반환"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "일차가 여행 기간을 벗어남"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "인증 필요"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "코스 또는 장소를 찾을 수 없음")
+    })
+    @PostMapping("/{courseId}/items")
+    public ResponseEntity<ApiResponse<CourseResponse>> addCourseItem(
+            @Parameter(description = "코스 ID", example = "1") @PathVariable Long courseId,
+            @Valid @RequestBody CourseItemCreateRequest request,
+            @AuthenticationPrincipal Long userId
+    ) {
+        return ResponseEntity.ok(ApiResponse.ok(
+                courseService.addCourseItem(userId, courseId, request)));
+    }
+
+    @Operation(summary = "코스 아이템 삭제",
+            description = "코스에서 특정 아이템(장소)을 제거합니다. 같은 일차의 남은 아이템들은 순서가 자동으로 당겨집니다.")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "삭제 후 코스 반환"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "인증 필요"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "코스 또는 아이템을 찾을 수 없음")
+    })
+    @DeleteMapping("/{courseId}/items/{itemId}")
+    public ResponseEntity<ApiResponse<CourseResponse>> deleteCourseItem(
+            @Parameter(description = "코스 ID", example = "1") @PathVariable Long courseId,
+            @Parameter(description = "아이템 ID", example = "3") @PathVariable Long itemId,
+            @AuthenticationPrincipal Long userId
+    ) {
+        return ResponseEntity.ok(ApiResponse.ok(
+                courseService.deleteCourseItem(userId, courseId, itemId)));
+    }
+
     @Operation(summary = "코스 이름 수정", description = "코스의 이름을 변경합니다.")
     @ApiResponses({
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "이름 수정 성공"),

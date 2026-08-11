@@ -52,7 +52,7 @@ class PlaceControllerTest {
                 .id(1L).name("테스트 카페").region(Region.GANGNEUNG)
                 .placeType(PlaceType.WORK_PLACE).totalScore(70).build();
 
-        when(placeService.getPlaces(any(), any(), any(), any(), anyInt(), anyInt(), any()))
+        when(placeService.getPlaces(any(), any(), any(), any(), any(), anyInt(), anyInt(), any()))
                 .thenReturn(PageResponse.of(List.of(summary), 0, 20, 1));
 
         mockMvc.perform(get("/api/v1/places")
@@ -67,7 +67,7 @@ class PlaceControllerTest {
     @DisplayName("지역 필터 적용 장소 목록 조회 - 200 OK")
     void getPlaces_지역_필터_200_반환() throws Exception {
         when(placeService.getPlaces(eq(Region.GANGNEUNG), isNull(),
-                eq(PlaceService.SortType.SCORE), isNull(), eq(0), eq(20), isNull()))
+                eq(PlaceService.SortType.SCORE), isNull(), isNull(), eq(0), eq(20), isNull()))
                 .thenReturn(PageResponse.of(List.of(), 0, 20, 0));
 
         mockMvc.perform(get("/api/v1/places")
@@ -80,7 +80,7 @@ class PlaceControllerTest {
     @DisplayName("타입 필터 + 최신순 정렬 장소 목록 조회 - 200 OK")
     void getPlaces_타입_필터_최신순_200_반환() throws Exception {
         when(placeService.getPlaces(isNull(), eq(PlaceType.STAY),
-                eq(PlaceService.SortType.LATEST), isNull(), eq(0), eq(10), isNull()))
+                eq(PlaceService.SortType.LATEST), isNull(), isNull(), eq(0), eq(10), isNull()))
                 .thenReturn(PageResponse.of(List.of(), 0, 10, 0));
 
         mockMvc.perform(get("/api/v1/places")
@@ -88,6 +88,19 @@ class PlaceControllerTest {
                         .param("sort", "LATEST")
                         .param("size", "10"))
                 .andExpect(status().isOk());
+    }
+
+    @Test
+    @DisplayName("키워드 검색 적용 장소 목록 조회 - 200 OK")
+    void getPlaces_키워드_검색_200_반환() throws Exception {
+        when(placeService.getPlaces(isNull(), isNull(),
+                eq(PlaceService.SortType.SCORE), isNull(), eq("펫카페"), eq(0), eq(20), isNull()))
+                .thenReturn(PageResponse.of(List.of(), 0, 20, 0));
+
+        mockMvc.perform(get("/api/v1/places")
+                        .param("keyword", "펫카페"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.content").isArray());
     }
 
     @Test
@@ -131,7 +144,7 @@ class PlaceControllerTest {
     @DisplayName("혼잡도 필터 RELAXED 적용 장소 목록 조회 - 200 OK")
     void getPlaces_혼잡도_RELAXED_필터_200_반환() throws Exception {
         when(placeService.getPlaces(isNull(), isNull(),
-                eq(PlaceService.SortType.SCORE), eq(CongestionLevel.RELAXED), eq(0), eq(20), isNull()))
+                eq(PlaceService.SortType.SCORE), eq(CongestionLevel.RELAXED), isNull(), eq(0), eq(20), isNull()))
                 .thenReturn(PageResponse.of(List.of(), 0, 20, 0));
 
         mockMvc.perform(get("/api/v1/places")

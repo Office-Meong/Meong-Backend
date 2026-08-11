@@ -44,20 +44,21 @@ public class PlaceService {
 
     public PageResponse<PlaceSummaryResponse> getPlaces(Region region, PlaceType placeType,
                                                          SortType sort, CongestionLevel congestion,
-                                                         int page, int size, Long userId) {
+                                                         String keyword, int page, int size, Long userId) {
         PageRequest pageRequest = PageRequest.of(page, size);
+        String normalizedKeyword = (keyword == null || keyword.isBlank()) ? null : keyword.trim();
 
         Page<Long> idPage;
         if (congestion != null) {
             Integer minScore = congestion.getMinScore();
             Integer maxScore = congestion.getMaxScore();
             idPage = sort == SortType.LATEST
-                    ? placeRepository.findIdsByFilterWithCongestionOrderByLatest(region, placeType, minScore, maxScore, pageRequest)
-                    : placeRepository.findIdsByFilterWithCongestionOrderByScore(region, placeType, minScore, maxScore, pageRequest);
+                    ? placeRepository.findIdsByFilterWithCongestionOrderByLatest(region, placeType, minScore, maxScore, normalizedKeyword, pageRequest)
+                    : placeRepository.findIdsByFilterWithCongestionOrderByScore(region, placeType, minScore, maxScore, normalizedKeyword, pageRequest);
         } else {
             idPage = sort == SortType.LATEST
-                    ? placeRepository.findIdsByFilterOrderByLatest(region, placeType, pageRequest)
-                    : placeRepository.findIdsByFilterOrderByScore(region, placeType, pageRequest);
+                    ? placeRepository.findIdsByFilterOrderByLatest(region, placeType, normalizedKeyword, pageRequest)
+                    : placeRepository.findIdsByFilterOrderByScore(region, placeType, normalizedKeyword, pageRequest);
         }
 
         if (idPage.isEmpty()) {

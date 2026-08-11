@@ -1,5 +1,6 @@
 package com.officemeong.domain.place.entity;
 
+import com.officemeong.domain.place.enums.LodgingType;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -35,23 +36,31 @@ public class PlaceOperation {
     @Column(name = "indoor_outdoor_type", length = 10)
     private String indoorOutdoorType;
 
+    /** 숙소(STAY) 세부 유형. 원본 데이터에 명시 필드가 없어 title/keyword 텍스트 매칭으로 추론하며, 판별 불가 시 null */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "lodging_type", length = 20)
+    private LodgingType lodgingType;
+
     @Builder
     public PlaceOperation(Place place, String operatingHours, String closedDays,
-                          String usageFee, Boolean parkingAvailable, String indoorOutdoorType) {
+                          String usageFee, Boolean parkingAvailable, String indoorOutdoorType,
+                          LodgingType lodgingType) {
         this.place = place;
         this.operatingHours = operatingHours;
         this.closedDays = closedDays;
         this.usageFee = usageFee;
         this.parkingAvailable = parkingAvailable;
         this.indoorOutdoorType = indoorOutdoorType;
+        this.lodgingType = lodgingType;
     }
 
     public void update(String operatingHours, String closedDays, String usageFee,
-                        Boolean parkingAvailable, String indoorOutdoorType) {
+                        Boolean parkingAvailable, String indoorOutdoorType, LodgingType lodgingType) {
         this.operatingHours = operatingHours;
         this.closedDays = closedDays;
         this.usageFee = usageFee;
         this.parkingAvailable = parkingAvailable;
         this.indoorOutdoorType = indoorOutdoorType;
+        this.lodgingType = lodgingType;
     }
 }

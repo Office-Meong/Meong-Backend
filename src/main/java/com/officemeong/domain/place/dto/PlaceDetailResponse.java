@@ -4,6 +4,7 @@ import com.officemeong.domain.congestion.enums.CongestionLevel;
 import com.officemeong.domain.place.entity.*;
 import com.officemeong.domain.place.enums.AcmpyType;
 import com.officemeong.domain.place.enums.Grade;
+import com.officemeong.domain.place.enums.LodgingType;
 import com.officemeong.domain.place.enums.PlaceType;
 import com.officemeong.domain.place.enums.Region;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -141,6 +142,12 @@ public class PlaceDetailResponse {
 
         @Schema(description = "실내외 구분 (IN/OUT 등 원본 값)", example = "IN")
         private String indoorOutdoorType;
+
+        @Schema(description = "숙소 유형 (STAY 장소에만 해당, 그 외 null). " +
+                "PENSION=펜션, GUESTHOUSE=민박/게스트하우스/한옥, CAMPING=캠핑장, GLAMPING=글램핑장, HOTEL=호텔/모텔/리조트, CARAVAN=카라반. " +
+                "원본 데이터에 유형이 명시되지 않은 숙소는 null(미분류)",
+                example = "PENSION")
+        private LodgingType lodgingType;
     }
 
     @Schema(description = "접근성 정보 상세")
@@ -215,6 +222,7 @@ public class PlaceDetailResponse {
                         .usageFee(op.getUsageFee())
                         .parkingAvailable(op.getParkingAvailable())
                         .indoorOutdoorType(op.getIndoorOutdoorType())
+                        .lodgingType(op.getLodgingType())
                         .build() : null)
                 .accessibility(acc != null ? AccessibilityDto.builder()
                         .hasParking(acc.getHasParking())

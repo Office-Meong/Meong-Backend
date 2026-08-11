@@ -67,11 +67,11 @@ class PlaceServiceTest {
     @Test
     @DisplayName("장소 목록 - 점수순 정렬, 빈 결과")
     void getPlaces_빈_결과_반환() {
-        when(placeRepository.findIdsByFilterOrderByScore(any(), any(), any()))
+        when(placeRepository.findIdsByFilterOrderByScore(any(), any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of(), PageRequest.of(0, 20), 0));
 
         PageResponse<PlaceSummaryResponse> response =
-                placeService.getPlaces(null, null, PlaceService.SortType.SCORE, null, 0, 20, null);
+                placeService.getPlaces(null, null, PlaceService.SortType.SCORE, null, null, 0, 20, null);
 
         assertThat(response.getContent()).isEmpty();
         assertThat(response.getTotalElements()).isZero();
@@ -83,13 +83,13 @@ class PlaceServiceTest {
         Place place1 = mockPlace(1L, "카페A", Region.GANGNEUNG, PlaceType.WORK_PLACE);
         Place place2 = mockPlace(2L, "카페B", Region.GANGNEUNG, PlaceType.FOOD);
 
-        when(placeRepository.findIdsByFilterOrderByScore(eq(Region.GANGNEUNG), isNull(), any()))
+        when(placeRepository.findIdsByFilterOrderByScore(eq(Region.GANGNEUNG), isNull(), isNull(), any()))
                 .thenReturn(new PageImpl<>(List.of(1L, 2L), PageRequest.of(0, 20), 2));
         when(placeRepository.findByIdsWithSummaryDetails(List.of(1L, 2L)))
                 .thenReturn(List.of(place1, place2));
 
         PageResponse<PlaceSummaryResponse> response =
-                placeService.getPlaces(Region.GANGNEUNG, null, PlaceService.SortType.SCORE, null, 0, 20, null);
+                placeService.getPlaces(Region.GANGNEUNG, null, PlaceService.SortType.SCORE, null, null, 0, 20, null);
 
         assertThat(response.getContent()).hasSize(2);
         assertThat(response.getTotalElements()).isEqualTo(2);
@@ -101,13 +101,13 @@ class PlaceServiceTest {
     void getPlaces_최신순_정렬_결과_반환() {
         Place place = mockPlace(1L, "최신 장소", Region.CHUNCHEON, PlaceType.STAY);
 
-        when(placeRepository.findIdsByFilterOrderByLatest(isNull(), isNull(), any()))
+        when(placeRepository.findIdsByFilterOrderByLatest(isNull(), isNull(), isNull(), any()))
                 .thenReturn(new PageImpl<>(List.of(1L), PageRequest.of(0, 20), 1));
         when(placeRepository.findByIdsWithSummaryDetails(List.of(1L)))
                 .thenReturn(List.of(place));
 
         PageResponse<PlaceSummaryResponse> response =
-                placeService.getPlaces(null, null, PlaceService.SortType.LATEST, null, 0, 20, null);
+                placeService.getPlaces(null, null, PlaceService.SortType.LATEST, null, null, 0, 20, null);
 
         assertThat(response.getContent()).hasSize(1);
         assertThat(response.getContent().get(0).getName()).isEqualTo("최신 장소");
@@ -118,13 +118,13 @@ class PlaceServiceTest {
     void getPlaces_점수없는_장소_기본값_반환() {
         Place place = mockPlace(1L, "점수없는 장소", Region.WONJU, PlaceType.TOUR);
 
-        when(placeRepository.findIdsByFilterOrderByScore(any(), any(), any()))
+        when(placeRepository.findIdsByFilterOrderByScore(any(), any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of(1L), PageRequest.of(0, 20), 1));
         when(placeRepository.findByIdsWithSummaryDetails(List.of(1L)))
                 .thenReturn(List.of(place));
 
         PageResponse<PlaceSummaryResponse> response =
-                placeService.getPlaces(null, null, PlaceService.SortType.SCORE, null, 0, 20, null);
+                placeService.getPlaces(null, null, PlaceService.SortType.SCORE, null, null, 0, 20, null);
 
         assertThat(response.getContent()).hasSize(1);
         assertThat(response.getContent().get(0).getTotalScore()).isZero();
@@ -136,13 +136,13 @@ class PlaceServiceTest {
         Place place = mockPlace(1L, "여유로운 카페", Region.GANGNEUNG, PlaceType.WORK_PLACE);
 
         when(placeRepository.findIdsByFilterWithCongestionOrderByScore(
-                isNull(), isNull(), eq(12), eq(15), any()))
+                isNull(), isNull(), eq(12), eq(15), isNull(), any()))
                 .thenReturn(new PageImpl<>(List.of(1L), PageRequest.of(0, 20), 1));
         when(placeRepository.findByIdsWithSummaryDetails(List.of(1L)))
                 .thenReturn(List.of(place));
 
         PageResponse<PlaceSummaryResponse> response =
-                placeService.getPlaces(null, null, PlaceService.SortType.SCORE, CongestionLevel.RELAXED, 0, 20, null);
+                placeService.getPlaces(null, null, PlaceService.SortType.SCORE, CongestionLevel.RELAXED, null, 0, 20, null);
 
         assertThat(response.getContent()).hasSize(1);
         assertThat(response.getContent().get(0).getName()).isEqualTo("여유로운 카페");
@@ -152,13 +152,35 @@ class PlaceServiceTest {
     @DisplayName("장소 목록 - 혼잡도 VERY_CROWDED 필터 + 최신순")
     void getPlaces_혼잡도_VERY_CROWDED_최신순() {
         when(placeRepository.findIdsByFilterWithCongestionOrderByLatest(
-                isNull(), isNull(), eq(0), eq(5), any()))
+                isNull(), isNull(), eq(0), eq(5), isNull(), any()))
                 .thenReturn(new PageImpl<>(List.of(), PageRequest.of(0, 20), 0));
 
         PageResponse<PlaceSummaryResponse> response =
-                placeService.getPlaces(null, null, PlaceService.SortType.LATEST, CongestionLevel.VERY_CROWDED, 0, 20, null);
+                placeService.getPlaces(null, null, PlaceService.SortType.LATEST, CongestionLevel.VERY_CROWDED, null, 0, 20, null);
 
         assertThat(response.getContent()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("장소 목록 - 키워드는 trim되어 리포지토리로 전달")
+    void getPlaces_키워드_trim_전달() {
+        when(placeRepository.findIdsByFilterOrderByScore(isNull(), isNull(), eq("카페"), any()))
+                .thenReturn(new PageImpl<>(List.of(), PageRequest.of(0, 20), 0));
+
+        placeService.getPlaces(null, null, PlaceService.SortType.SCORE, null, "  카페  ", 0, 20, null);
+
+        verify(placeRepository).findIdsByFilterOrderByScore(isNull(), isNull(), eq("카페"), any());
+    }
+
+    @Test
+    @DisplayName("장소 목록 - 빈 문자열 키워드는 null로 정규화")
+    void getPlaces_빈키워드_null로_정규화() {
+        when(placeRepository.findIdsByFilterOrderByScore(isNull(), isNull(), isNull(), any()))
+                .thenReturn(new PageImpl<>(List.of(), PageRequest.of(0, 20), 0));
+
+        placeService.getPlaces(null, null, PlaceService.SortType.SCORE, null, "   ", 0, 20, null);
+
+        verify(placeRepository).findIdsByFilterOrderByScore(isNull(), isNull(), isNull(), any());
     }
 
     @Test

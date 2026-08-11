@@ -50,6 +50,9 @@ public class PlaceController {
             @Parameter(description = "혼잡도 필터 (RELAXED: 여유, NORMAL: 보통, CROWDED: 혼잡, VERY_CROWDED: 매우혼잡). 미입력 시 전체")
             @RequestParam(required = false) CongestionLevel congestion,
 
+            @Parameter(description = "검색어 (장소명 또는 주소에 포함된 단어로 검색, 대소문자 구분 없음). 미입력 시 전체")
+            @RequestParam(required = false) String keyword,
+
             @Parameter(description = "페이지 번호 (0부터 시작). 기본값: 0")
             @RequestParam(defaultValue = "0") int page,
 
@@ -58,7 +61,7 @@ public class PlaceController {
 
             @AuthenticationPrincipal Long userId
     ) {
-        PageResponse<PlaceSummaryResponse> result = placeService.getPlaces(region, type, sort, congestion, page, size, userId);
+        PageResponse<PlaceSummaryResponse> result = placeService.getPlaces(region, type, sort, congestion, keyword, page, size, userId);
         return ResponseEntity.ok(ApiResponse.ok(result));
     }
 

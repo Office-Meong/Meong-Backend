@@ -16,6 +16,7 @@ import org.springframework.batch.repeat.RepeatStatus;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -40,6 +41,21 @@ public class KtoPlaceCollectTasklet implements Tasklet {
             "28", PlaceType.TOUR,
             "38", PlaceType.TOUR
     );
+
+    // 숙소(STAY) 세부 유형 추론용 키워드. 원본 API에 유형 필드가 없어 제목 텍스트 매칭으로 판별
+    private static final Map<String, LodgingType> LODGING_KEYWORDS = new LinkedHashMap<>();
+    static {
+        LODGING_KEYWORDS.put("글램핑", LodgingType.GLAMPING);
+        LODGING_KEYWORDS.put("카라반", LodgingType.CARAVAN);
+        LODGING_KEYWORDS.put("캠핑", LodgingType.CAMPING);
+        LODGING_KEYWORDS.put("펜션", LodgingType.PENSION);
+        LODGING_KEYWORDS.put("호텔", LodgingType.HOTEL);
+        LODGING_KEYWORDS.put("리조트", LodgingType.HOTEL);
+        LODGING_KEYWORDS.put("모텔", LodgingType.HOTEL);
+        LODGING_KEYWORDS.put("게스트하우스", LodgingType.GUESTHOUSE);
+        LODGING_KEYWORDS.put("민박", LodgingType.GUESTHOUSE);
+        LODGING_KEYWORDS.put("한옥", LodgingType.GUESTHOUSE);
+    }
 
     @Override
     public RepeatStatus execute(StepContribution contribution, ChunkContext chunkContext) {
@@ -119,16 +135,18 @@ public class KtoPlaceCollectTasklet implements Tasklet {
                     KtoIntroItem intro = ktoApiClient.fetchIntro(item.getContentid(), contentTypeId);
                     if (intro != null) {
                         Place finalPlace = place;
+                        LodgingType lodgingType = resolveLodgingType(placeType, item.getTitle());
                         operationRepository.findById(place.getId())
                                 .ifPresentOrElse(
                                         existing -> existing.update(intro.getOperatingHours(), intro.getClosedDays(),
                                                 existing.getUsageFee(), intro.getParkingAvailable(),
-                                                existing.getIndoorOutdoorType()),
+                                                existing.getIndoorOutdoorType(), lodgingType),
                                         () -> operationRepository.save(PlaceOperation.builder()
                                                 .place(finalPlace)
                                                 .operatingHours(intro.getOperatingHours())
                                                 .closedDays(intro.getClosedDays())
                                                 .parkingAvailable(intro.getParkingAvailable())
+                                                .lodgingType(lodgingType)
                                                 .build()));
                     }
 
@@ -156,6 +174,19 @@ public class KtoPlaceCollectTasklet implements Tasklet {
     private PlaceType resolveWorkPlace(KtoAreaBasedItem item, PlaceType baseType) {
         if (baseType == PlaceType.FOOD && "A05020900".equals(item.getCat3())) return PlaceType.WORK_PLACE;
         return baseType;
+    }
+
+    /** 숙소 유형 텍스트 매칭. STAY가 아니면 null, 매칭되는 키워드가 없어도 null(미분류) */
+    private LodgingType resolveLodgingType(PlaceType placeType, String... texts) {
+        if (placeType != PlaceType.STAY) return null;
+        StringBuilder combined = new StringBuilder();
+        for (String text : texts) {
+            if (hasValue(text)) combined.append(text).append(' ');
+        }
+        for (Map.Entry<String, LodgingType> entry : LODGING_KEYWORDS.entrySet()) {
+            if (combined.indexOf(entry.getKey()) >= 0) return entry.getValue();
+        }
+        return null;
     }
 
     private String buildAddress(KtoAreaBasedItem item) {

@@ -48,7 +48,7 @@ public class RecommendService {
     public List<PlaceRecommendResponse> recommend(Region region, Long dogId, Long userId) {
         // 1. 후보 장소 로드 (지역 점수 상위 20개)
         List<Long> candidateIds = placeRepository
-                .findIdsByFilterOrderByScore(region, null, PageRequest.of(0, CANDIDATE_COUNT))
+                .findIdsByFilterOrderByScore(region, null, null, PageRequest.of(0, CANDIDATE_COUNT))
                 .getContent();
         if (candidateIds.isEmpty()) {
             return List.of();

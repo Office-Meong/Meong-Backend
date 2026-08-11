@@ -15,6 +15,7 @@ import org.springframework.batch.repeat.RepeatStatus;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -32,6 +33,21 @@ public class GwtoPlaceCollectTasklet implements Tasklet {
     private final PlaceScoreRepository scoreRepository;
 
     private static final String FOOD_PART_CODE = "PC01";
+
+    // 숙소(STAY) 세부 유형 추론용 키워드. 원본 API에 유형 필드가 없어 제목/키워드/시설 텍스트 매칭으로 판별
+    private static final Map<String, LodgingType> LODGING_KEYWORDS = new LinkedHashMap<>();
+    static {
+        LODGING_KEYWORDS.put("글램핑", LodgingType.GLAMPING);
+        LODGING_KEYWORDS.put("카라반", LodgingType.CARAVAN);
+        LODGING_KEYWORDS.put("캠핑", LodgingType.CAMPING);
+        LODGING_KEYWORDS.put("펜션", LodgingType.PENSION);
+        LODGING_KEYWORDS.put("호텔", LodgingType.HOTEL);
+        LODGING_KEYWORDS.put("리조트", LodgingType.HOTEL);
+        LODGING_KEYWORDS.put("모텔", LodgingType.HOTEL);
+        LODGING_KEYWORDS.put("게스트하우스", LodgingType.GUESTHOUSE);
+        LODGING_KEYWORDS.put("민박", LodgingType.GUESTHOUSE);
+        LODGING_KEYWORDS.put("한옥", LodgingType.GUESTHOUSE);
+    }
 
     // 강원 반려동물 동반관광 API 분야 코드 (활용 가이드 기준): PC01 식음료, PC02 숙박, PC03 관광지, PC04 체험, PC05 동물병원
     private static final Map<String, PlaceType> PART_TYPE_MAP = Map.of(
@@ -129,16 +145,18 @@ public class GwtoPlaceCollectTasklet implements Tasklet {
                                     .build()));
 
             // 운영 정보
+            LodgingType lodgingType = resolveLodgingType(placeType, detail.getTitle(), detail.getKeyword(), detail.getMainFacility());
             operationRepository.findById(place.getId())
                     .ifPresentOrElse(
                             existing -> existing.update(detail.getUsedTime(), null, detail.getUsedCost(),
-                                    detail.isParkingAvailable(), detail.getInOutFlag()),
+                                    detail.isParkingAvailable(), detail.getInOutFlag(), lodgingType),
                             () -> operationRepository.save(PlaceOperation.builder()
                                     .place(finalPlace)
                                     .operatingHours(detail.getUsedTime())
                                     .usageFee(detail.getUsedCost())
                                     .parkingAvailable(detail.isParkingAvailable())
                                     .indoorOutdoorType(detail.getInOutFlag())
+                                    .lodgingType(lodgingType)
                                     .build()));
 
             if (isNew) {
@@ -161,6 +179,19 @@ public class GwtoPlaceCollectTasklet implements Tasklet {
         PlaceType baseType = PART_TYPE_MAP.getOrDefault(partCode, PlaceType.TOUR);
         if (FOOD_PART_CODE.equals(partCode) && detail.isCafeKeyword()) return PlaceType.WORK_PLACE;
         return baseType;
+    }
+
+    /** 숙소 유형 텍스트 매칭. STAY가 아니면 null, 매칭되는 키워드가 없어도 null(미분류) */
+    private LodgingType resolveLodgingType(PlaceType placeType, String... texts) {
+        if (placeType != PlaceType.STAY) return null;
+        StringBuilder combined = new StringBuilder();
+        for (String text : texts) {
+            if (hasValue(text)) combined.append(text).append(' ');
+        }
+        for (Map.Entry<String, LodgingType> entry : LODGING_KEYWORDS.entrySet()) {
+            if (combined.indexOf(entry.getKey()) >= 0) return entry.getValue();
+        }
+        return null;
     }
 
     private String extractAreaName(Region region) {

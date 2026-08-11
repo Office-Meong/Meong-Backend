@@ -5,6 +5,8 @@ import com.officemeong.domain.congestion.repository.CongestionForecastRepository
 import com.officemeong.domain.course.dto.ChecklistItemRequest;
 import com.officemeong.domain.course.dto.ChecklistItemUpdateRequest;
 import com.officemeong.domain.course.dto.CourseCreateRequest;
+import com.officemeong.domain.course.dto.CourseItemCreateRequest;
+import com.officemeong.domain.course.dto.CourseItemReorderRequest;
 import com.officemeong.domain.course.dto.CourseItemResponse;
 import com.officemeong.domain.course.dto.CourseSummaryResponse;
 import com.officemeong.domain.course.dto.CourseResponse;
@@ -27,6 +29,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -34,6 +37,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Optional;
@@ -187,6 +191,174 @@ class CourseServiceTest {
         assertThat(result).hasSize(2);
     }
 
+    // ──── 코스 아이템 순서 변경 ────
+
+    @Test
+    @DisplayName("아이템 순서 변경 - 요청한 순서대로 visitOrder 재반영")
+    void reorderCourseItems_성공() {
+        Place placeA = mockPlace(1L, PlaceType.FOOD);
+        Place placeB = mockPlace(2L, PlaceType.FOOD);
+        Place placeC = mockPlace(3L, PlaceType.FOOD);
+        CourseItem item1 = mockCourseItem(11L, 2, 1, placeA);
+        CourseItem item2 = mockCourseItem(12L, 2, 2, placeB);
+        CourseItem item3 = mockCourseItem(13L, 2, 3, placeC);
+
+        Course course = mockCourse(1L);
+        when(course.getItems()).thenReturn(List.of(item1, item2, item3));
+        when(courseRepository.findByIdAndUserIdWithItems(1L, 1L)).thenReturn(Optional.of(course));
+
+        CourseItemReorderRequest request = mock(CourseItemReorderRequest.class);
+        when(request.getDayNumber()).thenReturn(2);
+        when(request.getItemIds()).thenReturn(List.of(13L, 11L, 12L));
+
+        courseService.reorderCourseItems(1L, 1L, request);
+
+        verify(item3).updateOrder(eq(1), isNull());
+        verify(item1).updateOrder(eq(2), isNull());
+        verify(item2).updateOrder(eq(3), isNull());
+    }
+
+    @Test
+    @DisplayName("아이템 순서 변경 - 요청 목록이 해당 일차 실제 구성과 다르면 예외")
+    void reorderCourseItems_구성불일치_예외() {
+        Place placeA = mockPlace(1L, PlaceType.FOOD);
+        CourseItem item1 = mockCourseItem(11L, 2, 1, placeA);
+        Course course = mockCourse(1L);
+        when(course.getItems()).thenReturn(List.of(item1));
+        when(courseRepository.findByIdAndUserIdWithItems(1L, 1L)).thenReturn(Optional.of(course));
+
+        CourseItemReorderRequest request = mock(CourseItemReorderRequest.class);
+        when(request.getDayNumber()).thenReturn(2);
+        when(request.getItemIds()).thenReturn(List.of(999L));
+
+        assertThatThrownBy(() -> courseService.reorderCourseItems(1L, 1L, request))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    @DisplayName("아이템 순서 변경 - 중복 ID 있으면 예외")
+    void reorderCourseItems_중복ID_예외() {
+        Place placeA = mockPlace(1L, PlaceType.FOOD);
+        CourseItem item1 = mockCourseItem(11L, 2, 1, placeA);
+        Course course = mockCourse(1L);
+        when(course.getItems()).thenReturn(List.of(item1));
+        when(courseRepository.findByIdAndUserIdWithItems(1L, 1L)).thenReturn(Optional.of(course));
+
+        CourseItemReorderRequest request = mock(CourseItemReorderRequest.class);
+        when(request.getDayNumber()).thenReturn(2);
+        when(request.getItemIds()).thenReturn(List.of(11L, 11L));
+
+        assertThatThrownBy(() -> courseService.reorderCourseItems(1L, 1L, request))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    // ──── 코스 아이템 추가 ────
+
+    @Test
+    @DisplayName("아이템 추가 - 지정 위치에 삽입되고 앞뒤 아이템 순서 재정렬")
+    void addCourseItem_위치지정_성공() {
+        Place placeA = mockPlace(1L, PlaceType.FOOD);
+        Place placeB = mockPlace(2L, PlaceType.FOOD);
+        Place newPlace = mockPlace(99L, PlaceType.TOUR);
+
+        CourseItem item1 = mockCourseItem(11L, 1, 1, placeA);
+        CourseItem item2 = mockCourseItem(12L, 1, 2, placeB);
+
+        Course course = mockCourse(1L);
+        List<CourseItem> items = new ArrayList<>(List.of(item1, item2));
+        when(course.getItems()).thenReturn(items);
+        doAnswer(inv -> {
+            items.add(inv.getArgument(0));
+            return null;
+        }).when(course).addItem(any(CourseItem.class));
+        when(courseRepository.findByIdAndUserIdWithItems(1L, 1L)).thenReturn(Optional.of(course));
+        when(placeRepository.findById(99L)).thenReturn(Optional.of(newPlace));
+
+        CourseItemCreateRequest request = mock(CourseItemCreateRequest.class);
+        when(request.getDayNumber()).thenReturn(1);
+        when(request.getPlaceId()).thenReturn(99L);
+        when(request.getVisitOrder()).thenReturn(2);
+        lenient().when(request.getStartTime()).thenReturn(null);
+        lenient().when(request.getEndTime()).thenReturn(null);
+        lenient().when(request.getSlotLabel()).thenReturn(null);
+
+        ArgumentCaptor<CourseItem> captor = ArgumentCaptor.forClass(CourseItem.class);
+
+        courseService.addCourseItem(1L, 1L, request);
+
+        verify(course).addItem(captor.capture());
+        CourseItem newItem = captor.getValue();
+        assertThat(newItem.getPlace()).isEqualTo(newPlace);
+        assertThat(newItem.getDayNumber()).isEqualTo(1);
+        assertThat(newItem.getVisitOrder()).isEqualTo(2);
+
+        verify(item1).updateOrder(eq(1), isNull());
+        verify(item2).updateOrder(eq(3), isNull());
+    }
+
+    @Test
+    @DisplayName("아이템 추가 - 여행 기간을 벗어난 일차면 예외")
+    void addCourseItem_일차범위초과_예외() {
+        Course course = mockCourse(1L);
+        when(courseRepository.findByIdAndUserIdWithItems(1L, 1L)).thenReturn(Optional.of(course));
+
+        CourseItemCreateRequest request = mock(CourseItemCreateRequest.class);
+        when(request.getDayNumber()).thenReturn(2);
+
+        assertThatThrownBy(() -> courseService.addCourseItem(1L, 1L, request))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    @DisplayName("아이템 추가 - 장소를 찾을 수 없으면 예외")
+    void addCourseItem_장소없음_예외() {
+        Course course = mockCourse(1L);
+        when(courseRepository.findByIdAndUserIdWithItems(1L, 1L)).thenReturn(Optional.of(course));
+        when(placeRepository.findById(999L)).thenReturn(Optional.empty());
+
+        CourseItemCreateRequest request = mock(CourseItemCreateRequest.class);
+        when(request.getDayNumber()).thenReturn(1);
+        when(request.getPlaceId()).thenReturn(999L);
+
+        assertThatThrownBy(() -> courseService.addCourseItem(1L, 1L, request))
+                .isInstanceOf(NoSuchElementException.class);
+    }
+
+    // ──── 코스 아이템 삭제 ────
+
+    @Test
+    @DisplayName("아이템 삭제 - 성공 시 같은 일차 남은 아이템 순서 재정렬")
+    void deleteCourseItem_성공() {
+        Place placeA = mockPlace(1L, PlaceType.FOOD);
+        Place placeB = mockPlace(2L, PlaceType.FOOD);
+        Place placeC = mockPlace(3L, PlaceType.FOOD);
+        CourseItem item1 = mockCourseItem(11L, 1, 1, placeA);
+        CourseItem item2 = mockCourseItem(12L, 1, 2, placeB);
+        CourseItem item3 = mockCourseItem(13L, 1, 3, placeC);
+
+        Course course = mockCourse(1L);
+        List<CourseItem> items = new ArrayList<>(List.of(item1, item2, item3));
+        when(course.getItems()).thenReturn(items);
+        when(courseRepository.findByIdAndUserIdWithItems(1L, 1L)).thenReturn(Optional.of(course));
+
+        courseService.deleteCourseItem(1L, 1L, 12L);
+
+        assertThat(items).containsExactly(item1, item3);
+        verify(item1).updateOrder(eq(1), isNull());
+        verify(item3).updateOrder(eq(2), isNull());
+    }
+
+    @Test
+    @DisplayName("아이템 삭제 - 없는 아이템이면 예외")
+    void deleteCourseItem_없음_예외() {
+        Course course = mockCourse(1L);
+        when(course.getItems()).thenReturn(List.of());
+        when(courseRepository.findByIdAndUserIdWithItems(1L, 1L)).thenReturn(Optional.of(course));
+
+        assertThatThrownBy(() -> courseService.deleteCourseItem(1L, 1L, 999L))
+                .isInstanceOf(NoSuchElementException.class);
+    }
+
     // ──── 체크리스트 ────
 
     @Test
@@ -319,6 +491,15 @@ class CourseServiceTest {
         lenient().when(score.getCongestionScore()).thenReturn(congestionScore);
         lenient().when(p.getScore()).thenReturn(score);
         return p;
+    }
+
+    private CourseItem mockCourseItem(Long id, Integer dayNumber, Integer visitOrder, Place place) {
+        CourseItem item = mock(CourseItem.class);
+        lenient().when(item.getId()).thenReturn(id);
+        lenient().when(item.getDayNumber()).thenReturn(dayNumber);
+        lenient().when(item.getVisitOrder()).thenReturn(visitOrder);
+        lenient().when(item.getPlace()).thenReturn(place);
+        return item;
     }
 
     private Course mockCourse(Long id) {

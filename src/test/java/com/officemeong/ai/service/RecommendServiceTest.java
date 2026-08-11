@@ -54,7 +54,7 @@ class RecommendServiceTest {
         mockPlace2 = mockPlace(20L, "숙소B", PlaceType.STAY, 75);
         mockPlace3 = mockPlace(30L, "코워킹C", PlaceType.WORK_PLACE, 70);
 
-        lenient().when(placeRepository.findIdsByFilterOrderByScore(eq(Region.GANGNEUNG), isNull(), any()))
+        lenient().when(placeRepository.findIdsByFilterOrderByScore(eq(Region.GANGNEUNG), isNull(), isNull(), any()))
                 .thenReturn(new PageImpl<>(List.of(10L, 20L, 30L), PageRequest.of(0, 20), 3));
         lenient().when(placeRepository.findByIdsWithSummaryDetails(List.of(10L, 20L, 30L)))
                 .thenReturn(List.of(mockPlace1, mockPlace2, mockPlace3));
@@ -94,7 +94,7 @@ class RecommendServiceTest {
     @Test
     @DisplayName("후보 장소 없을 때 빈 리스트 반환")
     void recommend_후보없음_빈리스트() {
-        when(placeRepository.findIdsByFilterOrderByScore(eq(Region.WONJU), isNull(), any()))
+        when(placeRepository.findIdsByFilterOrderByScore(eq(Region.WONJU), isNull(), isNull(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
 
         List<PlaceRecommendResponse> result = recommendService.recommend(Region.WONJU, null, 1L);

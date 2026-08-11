@@ -37,24 +37,34 @@ public interface PlaceRepository extends JpaRepository<Place, Long> {
     @Query(value = "SELECT p.id FROM Place p LEFT JOIN p.score s " +
                    "WHERE (:region IS NULL OR p.region = :region) " +
                    "AND (:placeType IS NULL OR p.placeType = :placeType) " +
+                   "AND (:keyword IS NULL OR LOWER(p.name) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
+                   "     OR LOWER(p.address) LIKE LOWER(CONCAT('%', :keyword, '%'))) " +
                    "ORDER BY COALESCE(s.totalScore, 0) DESC",
            countQuery = "SELECT COUNT(p) FROM Place p " +
                         "WHERE (:region IS NULL OR p.region = :region) " +
-                        "AND (:placeType IS NULL OR p.placeType = :placeType)")
+                        "AND (:placeType IS NULL OR p.placeType = :placeType) " +
+                        "AND (:keyword IS NULL OR LOWER(p.name) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
+                        "     OR LOWER(p.address) LIKE LOWER(CONCAT('%', :keyword, '%')))")
     Page<Long> findIdsByFilterOrderByScore(@Param("region") Region region,
                                            @Param("placeType") PlaceType placeType,
+                                           @Param("keyword") String keyword,
                                            Pageable pageable);
 
     // 목록 조회 - 최신 동기화 순
     @Query(value = "SELECT p.id FROM Place p " +
                    "WHERE (:region IS NULL OR p.region = :region) " +
                    "AND (:placeType IS NULL OR p.placeType = :placeType) " +
+                   "AND (:keyword IS NULL OR LOWER(p.name) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
+                   "     OR LOWER(p.address) LIKE LOWER(CONCAT('%', :keyword, '%'))) " +
                    "ORDER BY p.lastSyncedAt DESC",
            countQuery = "SELECT COUNT(p) FROM Place p " +
                         "WHERE (:region IS NULL OR p.region = :region) " +
-                        "AND (:placeType IS NULL OR p.placeType = :placeType)")
+                        "AND (:placeType IS NULL OR p.placeType = :placeType) " +
+                        "AND (:keyword IS NULL OR LOWER(p.name) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
+                        "     OR LOWER(p.address) LIKE LOWER(CONCAT('%', :keyword, '%')))")
     Page<Long> findIdsByFilterOrderByLatest(@Param("region") Region region,
                                             @Param("placeType") PlaceType placeType,
+                                            @Param("keyword") String keyword,
                                             Pageable pageable);
 
     // 목록 조회 - 점수 내림차순 + 혼잡도 필터
@@ -63,16 +73,21 @@ public interface PlaceRepository extends JpaRepository<Place, Long> {
                    "AND (:placeType IS NULL OR p.placeType = :placeType) " +
                    "AND (:minCongestionScore IS NULL OR s.congestionScore >= :minCongestionScore) " +
                    "AND (:maxCongestionScore IS NULL OR s.congestionScore <= :maxCongestionScore) " +
+                   "AND (:keyword IS NULL OR LOWER(p.name) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
+                   "     OR LOWER(p.address) LIKE LOWER(CONCAT('%', :keyword, '%'))) " +
                    "ORDER BY COALESCE(s.totalScore, 0) DESC",
            countQuery = "SELECT COUNT(p) FROM Place p LEFT JOIN p.score s " +
                         "WHERE (:region IS NULL OR p.region = :region) " +
                         "AND (:placeType IS NULL OR p.placeType = :placeType) " +
                         "AND (:minCongestionScore IS NULL OR s.congestionScore >= :minCongestionScore) " +
-                        "AND (:maxCongestionScore IS NULL OR s.congestionScore <= :maxCongestionScore)")
+                        "AND (:maxCongestionScore IS NULL OR s.congestionScore <= :maxCongestionScore) " +
+                        "AND (:keyword IS NULL OR LOWER(p.name) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
+                        "     OR LOWER(p.address) LIKE LOWER(CONCAT('%', :keyword, '%')))")
     Page<Long> findIdsByFilterWithCongestionOrderByScore(@Param("region") Region region,
                                                          @Param("placeType") PlaceType placeType,
                                                          @Param("minCongestionScore") Integer minCongestionScore,
                                                          @Param("maxCongestionScore") Integer maxCongestionScore,
+                                                         @Param("keyword") String keyword,
                                                          Pageable pageable);
 
     // 목록 조회 - 최신 동기화 순 + 혼잡도 필터
@@ -81,16 +96,21 @@ public interface PlaceRepository extends JpaRepository<Place, Long> {
                    "AND (:placeType IS NULL OR p.placeType = :placeType) " +
                    "AND (:minCongestionScore IS NULL OR s.congestionScore >= :minCongestionScore) " +
                    "AND (:maxCongestionScore IS NULL OR s.congestionScore <= :maxCongestionScore) " +
+                   "AND (:keyword IS NULL OR LOWER(p.name) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
+                   "     OR LOWER(p.address) LIKE LOWER(CONCAT('%', :keyword, '%'))) " +
                    "ORDER BY p.lastSyncedAt DESC",
            countQuery = "SELECT COUNT(p) FROM Place p LEFT JOIN p.score s " +
                         "WHERE (:region IS NULL OR p.region = :region) " +
                         "AND (:placeType IS NULL OR p.placeType = :placeType) " +
                         "AND (:minCongestionScore IS NULL OR s.congestionScore >= :minCongestionScore) " +
-                        "AND (:maxCongestionScore IS NULL OR s.congestionScore <= :maxCongestionScore)")
+                        "AND (:maxCongestionScore IS NULL OR s.congestionScore <= :maxCongestionScore) " +
+                        "AND (:keyword IS NULL OR LOWER(p.name) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
+                        "     OR LOWER(p.address) LIKE LOWER(CONCAT('%', :keyword, '%')))")
     Page<Long> findIdsByFilterWithCongestionOrderByLatest(@Param("region") Region region,
                                                           @Param("placeType") PlaceType placeType,
                                                           @Param("minCongestionScore") Integer minCongestionScore,
                                                           @Param("maxCongestionScore") Integer maxCongestionScore,
+                                                          @Param("keyword") String keyword,
                                                           Pageable pageable);
 
     // ID 목록으로 상세 fetch (score + petCondition 포함)

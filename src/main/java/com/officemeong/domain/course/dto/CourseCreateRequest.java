@@ -1,6 +1,7 @@
 package com.officemeong.domain.course.dto;
 
 import com.officemeong.domain.course.enums.WorkFocusLevel;
+import com.officemeong.domain.place.enums.LodgingType;
 import com.officemeong.domain.place.enums.Region;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotNull;
@@ -8,6 +9,7 @@ import lombok.Getter;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.List;
 
 @Schema(description = "워케이션 코스 생성 요청")
 @Getter
@@ -44,4 +46,9 @@ public class CourseCreateRequest {
     @Schema(description = "코스 이름 (선택). 미입력 시 자동 생성 (예: 강릉 3일 워케이션)", example = "우리 가족 강릉 여행")
     @jakarta.validation.constraints.Size(max = 100)
     private String name;
+
+    @Schema(description = "선호하는 숙소 유형 (선택, 다중 선택 가능). 지정 시 해당 유형의 숙소를 우선 배정하며, " +
+            "일치하는 숙소가 없으면 다른 숙소로 대체됩니다.",
+            example = "[\"PENSION\", \"GLAMPING\"]")
+    private List<LodgingType> preferredLodgingTypes;
 }

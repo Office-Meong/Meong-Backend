@@ -13,8 +13,10 @@ import com.officemeong.domain.course.repository.CourseRepository;
 import com.officemeong.domain.dog.entity.Dog;
 import com.officemeong.domain.dog.repository.DogRepository;
 import com.officemeong.domain.place.entity.Place;
+import com.officemeong.domain.place.entity.PlaceOperation;
 import com.officemeong.domain.place.entity.PlacePetCondition;
 import com.officemeong.domain.place.entity.PlaceScore;
+import com.officemeong.domain.place.enums.LodgingType;
 import com.officemeong.domain.place.enums.PlaceType;
 import com.officemeong.domain.place.enums.Region;
 import com.officemeong.domain.place.repository.PlaceRepository;
@@ -76,7 +78,7 @@ public class CourseService {
         Integer travelCongestionScore = resolveTravelCongestionScore(
                 request.getRegion(), request.getStartDate(), request.getEndDate());
         Map<PlaceType, List<Place>> candidatesByType = loadCandidates(
-                request.getRegion(), dogWeightKg, travelCongestionScore);
+                request.getRegion(), dogWeightKg, travelCongestionScore, request.getPreferredLodgingTypes());
         Set<Long> usedPlaceIds = new HashSet<>();
 
         for (int day = 1; day <= days; day++) {
@@ -155,6 +157,116 @@ public class CourseService {
         }
 
         return CourseResponse.from(course);
+    }
+
+    // ──────────────────── 코스 아이템 순서 변경 ────────────────────
+
+    @Transactional
+    public CourseResponse reorderCourseItems(Long userId, Long courseId, CourseItemReorderRequest request) {
+        Course course = courseRepository.findByIdAndUserIdWithItems(courseId, userId)
+                .orElseThrow(() -> new NoSuchElementException("코스를 찾을 수 없습니다. id=" + courseId));
+
+        Map<Long, CourseItem> dayItemsById = course.getItems().stream()
+                .filter(i -> i.getDayNumber().equals(request.getDayNumber()))
+                .collect(Collectors.toMap(CourseItem::getId, i -> i));
+
+        Set<Long> requestedIds = new LinkedHashSet<>(request.getItemIds());
+        if (requestedIds.size() != request.getItemIds().size()) {
+            throw new IllegalArgumentException("아이템 ID가 중복되었습니다.");
+        }
+        if (!requestedIds.equals(dayItemsById.keySet())) {
+            throw new IllegalArgumentException(
+                    request.getDayNumber() + "일차의 실제 아이템 구성과 요청한 목록이 일치하지 않습니다.");
+        }
+
+        Place prevPlace = null;
+        int order = 1;
+        for (Long itemId : request.getItemIds()) {
+            CourseItem item = dayItemsById.get(itemId);
+            item.updateOrder(order++, calcDistFromPrev(prevPlace, item.getPlace()));
+            prevPlace = item.getPlace();
+        }
+
+        return CourseResponse.from(course);
+    }
+
+    // ──────────────────── 코스 아이템 추가 ────────────────────
+
+    @Transactional
+    public CourseResponse addCourseItem(Long userId, Long courseId, CourseItemCreateRequest request) {
+        Course course = courseRepository.findByIdAndUserIdWithItems(courseId, userId)
+                .orElseThrow(() -> new NoSuchElementException("코스를 찾을 수 없습니다. id=" + courseId));
+
+        int totalDays = (int) course.getStartDate().until(course.getEndDate(),
+                java.time.temporal.ChronoUnit.DAYS) + 1;
+        if (request.getDayNumber() < 1 || request.getDayNumber() > totalDays) {
+            throw new IllegalArgumentException(
+                    "코스 여행 기간(1~" + totalDays + "일차)을 벗어난 일차입니다. dayNumber=" + request.getDayNumber());
+        }
+
+        Place place = placeRepository.findById(request.getPlaceId())
+                .orElseThrow(() -> new NoSuchElementException("장소를 찾을 수 없습니다. id=" + request.getPlaceId()));
+
+        List<CourseItem> dayItems = new ArrayList<>(course.getItems().stream()
+                .filter(i -> i.getDayNumber().equals(request.getDayNumber()))
+                .sorted(Comparator.comparingInt(CourseItem::getVisitOrder))
+                .toList());
+
+        int insertIndex = (request.getVisitOrder() == null
+                || request.getVisitOrder() < 1
+                || request.getVisitOrder() > dayItems.size() + 1)
+                ? dayItems.size()
+                : request.getVisitOrder() - 1;
+
+        CourseItem newItem = CourseItem.builder()
+                .course(course)
+                .place(place)
+                .dayNumber(request.getDayNumber())
+                .visitOrder(insertIndex + 1)
+                .startTime(request.getStartTime())
+                .endTime(request.getEndTime())
+                .slotLabel(request.getSlotLabel())
+                .build();
+        dayItems.add(insertIndex, newItem);
+        course.addItem(newItem);
+
+        resequence(dayItems);
+
+        return CourseResponse.from(course);
+    }
+
+    // ──────────────────── 코스 아이템 삭제 ────────────────────
+
+    @Transactional
+    public CourseResponse deleteCourseItem(Long userId, Long courseId, Long itemId) {
+        Course course = courseRepository.findByIdAndUserIdWithItems(courseId, userId)
+                .orElseThrow(() -> new NoSuchElementException("코스를 찾을 수 없습니다. id=" + courseId));
+
+        CourseItem target = course.getItems().stream()
+                .filter(i -> i.getId().equals(itemId))
+                .findFirst()
+                .orElseThrow(() -> new NoSuchElementException("코스 아이템을 찾을 수 없습니다. id=" + itemId));
+
+        Integer dayNumber = target.getDayNumber();
+        course.getItems().remove(target);
+
+        List<CourseItem> remaining = course.getItems().stream()
+                .filter(i -> i.getDayNumber().equals(dayNumber))
+                .sorted(Comparator.comparingInt(CourseItem::getVisitOrder))
+                .toList();
+        resequence(remaining);
+
+        return CourseResponse.from(course);
+    }
+
+    /** 같은 날짜 아이템 목록을 주어진 순서대로 1부터 재번호하고, 거리(distanceFromPrevKm)를 재계산 */
+    private void resequence(List<CourseItem> orderedDayItems) {
+        Place prevPlace = null;
+        int order = 1;
+        for (CourseItem item : orderedDayItems) {
+            item.updateOrder(order++, calcDistFromPrev(prevPlace, item.getPlace()));
+            prevPlace = item.getPlace();
+        }
     }
 
     // ──────────────────── 코스 이름 수정 ────────────────────
@@ -262,7 +374,8 @@ public class CourseService {
     }
 
     private Map<PlaceType, List<Place>> loadCandidates(
-            Region region, BigDecimal dogWeightKg, Integer travelCongestionScore) {
+            Region region, BigDecimal dogWeightKg, Integer travelCongestionScore,
+            List<LodgingType> preferredLodgingTypes) {
         Map<PlaceType, List<Place>> map = new EnumMap<>(PlaceType.class);
         for (PlaceType type : PlaceType.values()) {
             List<Place> places = placeRepository.findByRegionAndPlaceTypeOrderByScore(region, type)
@@ -273,9 +386,20 @@ public class CourseService {
                 places.sort(Comparator.comparingInt(
                         (Place p) -> effectiveScore(p, travelCongestionScore)).reversed());
             }
+            // 숙소 유형 선호 반영: 선호 유형 일치 숙소를 앞으로 (안정 정렬이라 기존 순위는 그룹 내에서 유지됨).
+            // 일치하는 숙소가 없어도 후순위로 밀릴 뿐 후보에서 제외되지는 않아 코스 생성이 실패하지 않음.
+            if (type == PlaceType.STAY && preferredLodgingTypes != null && !preferredLodgingTypes.isEmpty()) {
+                places.sort(Comparator.comparingInt(
+                        (Place p) -> matchesPreferredLodging(p, preferredLodgingTypes) ? 0 : 1));
+            }
             map.put(type, places);
         }
         return map;
+    }
+
+    private boolean matchesPreferredLodging(Place place, List<LodgingType> preferredTypes) {
+        PlaceOperation op = place.getOperation();
+        return op != null && op.getLodgingType() != null && preferredTypes.contains(op.getLodgingType());
     }
 
     /**

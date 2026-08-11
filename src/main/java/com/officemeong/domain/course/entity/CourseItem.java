@@ -72,4 +72,9 @@ public class CourseItem {
         this.place = place;
         this.distanceFromPrevKm = distanceFromPrevKm;
     }
+
+    public void updateOrder(Integer visitOrder, BigDecimal distanceFromPrevKm) {
+        this.visitOrder = visitOrder;
+        this.distanceFromPrevKm = distanceFromPrevKm;
+    }
 }
