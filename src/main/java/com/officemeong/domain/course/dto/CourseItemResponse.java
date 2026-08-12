@@ -1,6 +1,8 @@
 package com.officemeong.domain.course.dto;
 
 import com.officemeong.domain.course.entity.CourseItem;
+import com.officemeong.domain.place.entity.PlaceImage;
+import com.officemeong.domain.place.enums.LodgingType;
 import com.officemeong.domain.place.enums.PlaceType;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
@@ -53,21 +55,40 @@ public class CourseItemResponse {
     @Schema(description = "이전 장소로부터의 거리 (km)", example = "0.85")
     private BigDecimal distanceFromPrevKm;
 
+    @Schema(description = "썸네일 이미지 URL (없으면 null)", example = "http://example.com/thumb.jpg")
+    private String thumbnailUrl;
+
+    @Schema(description = "숙소 유형 (placeType이 STAY인 아이템만 해당, 그 외 null). " +
+            "PENSION=펜션, GUESTHOUSE=민박/게스트하우스/한옥, CAMPING=캠핑장, GLAMPING=글램핑장, HOTEL=호텔/모텔/리조트, CARAVAN=카라반. " +
+            "STAY이지만 원본 데이터에서 유형을 판별하지 못한 경우도 null",
+            example = "PENSION")
+    private LodgingType lodgingType;
+
     public static CourseItemResponse from(CourseItem item) {
+        var place = item.getPlace();
+        String thumbnail = place.getImages().stream()
+                .filter(PlaceImage::isThumbnail)
+                .map(PlaceImage::getImageUrl)
+                .findFirst()
+                .orElseGet(() -> place.getImages().isEmpty() ? null
+                        : place.getImages().get(0).getImageUrl());
+
         return CourseItemResponse.builder()
                 .id(item.getId())
                 .dayNumber(item.getDayNumber())
                 .visitOrder(item.getVisitOrder())
                 .slotLabel(item.getSlotLabel())
-                .placeId(item.getPlace().getId())
-                .placeName(item.getPlace().getName())
-                .placeType(item.getPlace().getPlaceType())
-                .address(item.getPlace().getAddress())
-                .latitude(item.getPlace().getLatitude())
-                .longitude(item.getPlace().getLongitude())
+                .placeId(place.getId())
+                .placeName(place.getName())
+                .placeType(place.getPlaceType())
+                .address(place.getAddress())
+                .latitude(place.getLatitude())
+                .longitude(place.getLongitude())
                 .startTime(item.getStartTime())
                 .endTime(item.getEndTime())
                 .distanceFromPrevKm(item.getDistanceFromPrevKm())
+                .thumbnailUrl(thumbnail)
+                .lodgingType(place.getOperation() != null ? place.getOperation().getLodgingType() : null)
                 .build();
     }
 }
