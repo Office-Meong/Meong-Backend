@@ -38,7 +38,7 @@ class AuthServiceTest {
         KakaoUserInfoResponse userInfo = mock(KakaoUserInfoResponse.class);
         User newUser = mockUser(1L);
 
-        when(kakaoClient.getToken("auth-code")).thenReturn(kakaoToken);
+        when(kakaoClient.getToken("auth-code", "kakao1234://oauth")).thenReturn(kakaoToken);
         when(kakaoToken.getAccessToken()).thenReturn("kakao-access-token");
         when(kakaoClient.getUserInfo("kakao-access-token")).thenReturn(userInfo);
         when(userInfo.getId()).thenReturn(123456L);
@@ -51,7 +51,7 @@ class AuthServiceTest {
         when(jwtProvider.createRefreshToken(1L)).thenReturn("refresh-token");
         when(jwtProvider.getAccessTokenExpirySeconds()).thenReturn(1800L);
 
-        TokenResponse response = authService.kakaoLogin("auth-code", true, true);
+        TokenResponse response = authService.kakaoLogin("auth-code", "kakao1234://oauth", true, true);
 
         assertThat(response.getAccessToken()).isEqualTo("access-token");
         assertThat(response.getRefreshToken()).isEqualTo("refresh-token");
@@ -66,7 +66,7 @@ class AuthServiceTest {
         KakaoUserInfoResponse userInfo = mock(KakaoUserInfoResponse.class);
         User existingUser = mockUser(1L);
 
-        when(kakaoClient.getToken("auth-code")).thenReturn(kakaoToken);
+        when(kakaoClient.getToken("auth-code", "kakao1234://oauth")).thenReturn(kakaoToken);
         when(kakaoToken.getAccessToken()).thenReturn("kakao-access-token");
         when(kakaoClient.getUserInfo("kakao-access-token")).thenReturn(userInfo);
         when(userInfo.getId()).thenReturn(123456L);
@@ -76,7 +76,7 @@ class AuthServiceTest {
         when(jwtProvider.createRefreshToken(1L)).thenReturn("refresh-token");
         when(jwtProvider.getAccessTokenExpirySeconds()).thenReturn(1800L);
 
-        TokenResponse response = authService.kakaoLogin("auth-code", null, null);
+        TokenResponse response = authService.kakaoLogin("auth-code", "kakao1234://oauth", null, null);
 
         assertThat(response.getAccessToken()).isEqualTo("access-token");
         verify(userRepository, times(1)).save(existingUser);
@@ -148,13 +148,13 @@ class AuthServiceTest {
         User deletedUser = mock(User.class);
         when(deletedUser.isDeleted()).thenReturn(true);
 
-        when(kakaoClient.getToken("auth-code")).thenReturn(kakaoToken);
+        when(kakaoClient.getToken("auth-code", "kakao1234://oauth")).thenReturn(kakaoToken);
         when(kakaoToken.getAccessToken()).thenReturn("kakao-access-token");
         when(kakaoClient.getUserInfo("kakao-access-token")).thenReturn(userInfo);
         when(userInfo.getId()).thenReturn(123456L);
         when(userRepository.findByKakaoId(123456L)).thenReturn(Optional.of(deletedUser));
 
-        assertThatThrownBy(() -> authService.kakaoLogin("auth-code", null, null))
+        assertThatThrownBy(() -> authService.kakaoLogin("auth-code", "kakao1234://oauth", null, null))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("탈퇴한 사용자");
     }
@@ -165,13 +165,13 @@ class AuthServiceTest {
         KakaoTokenResponse kakaoToken = mock(KakaoTokenResponse.class);
         KakaoUserInfoResponse userInfo = mock(KakaoUserInfoResponse.class);
 
-        when(kakaoClient.getToken("auth-code")).thenReturn(kakaoToken);
+        when(kakaoClient.getToken("auth-code", "kakao1234://oauth")).thenReturn(kakaoToken);
         when(kakaoToken.getAccessToken()).thenReturn("kakao-access-token");
         when(kakaoClient.getUserInfo("kakao-access-token")).thenReturn(userInfo);
         when(userInfo.getId()).thenReturn(99999L);
         when(userRepository.findByKakaoId(99999L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> authService.kakaoLogin("auth-code", false, true))
+        assertThatThrownBy(() -> authService.kakaoLogin("auth-code", "kakao1234://oauth", false, true))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("동의");
     }

@@ -31,7 +31,6 @@ api:
 
 kakao:
   client-id: test-kakao-client-id
-  redirect-uri: http://localhost:8080/test/callback
 
 jwt:
   secret: test-jwt-secret-key-minimum-32-characters!!

@@ -34,7 +34,6 @@ server:
 # 카카오 OAuth
 kakao:
   client-id: ${KAKAO_CLIENT_ID}
-  redirect-uri: ${KAKAO_REDIRECT_URI}
   client-secret: ${KAKAO_CLIENT_SECRET:}
 
 # JWT

@@ -15,6 +15,10 @@ public class KakaoLoginRequest {
     @NotBlank(message = "인가 코드는 필수입니다.")
     private String code;
 
+    @Schema(description = "인가코드 발급 시 사용한 redirect_uri (플랫폼별 상이). 웹: https://… , Android: kakao{appKey}://oauth", example = "kakao1234567890://oauth")
+    @NotBlank(message = "redirect_uri는 필수입니다.")
+    private String redirectUri;
+
     @Schema(description = "서비스 이용약관 동의 여부 (신규 가입 시 필수)", example = "true")
     private Boolean termsAgreed;
 
