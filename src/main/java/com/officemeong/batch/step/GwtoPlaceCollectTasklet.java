@@ -110,14 +110,14 @@ public class GwtoPlaceCollectTasklet implements Tasklet {
             place = placeRepository.save(place);
             Place finalPlace = place;
 
-            // 이미지
+            // 이미지 (Android cleartext 차단 방지: http → https 변환)
             if (detail.getImageList() != null && !detail.getImageList().isEmpty()) {
                 placeImageRepository.deleteByPlaceId(place.getId());
                 for (int i = 0; i < detail.getImageList().size(); i++) {
                     GwtoDetailItem.ImageItem img = detail.getImageList().get(i);
                     if (hasValue(img.getImage())) {
                         placeImageRepository.save(PlaceImage.builder()
-                                .place(place).imageUrl(img.getImage())
+                                .place(place).imageUrl(toHttps(img.getImage()))
                                 .isThumbnail(i == 0).displayOrder(i).build());
                     }
                 }
@@ -221,4 +221,9 @@ public class GwtoPlaceCollectTasklet implements Tasklet {
     }
 
     private boolean hasValue(String s) { return s != null && !s.isBlank(); }
+
+    private String toHttps(String url) {
+        if (url != null && url.startsWith("http://")) return "https://" + url.substring(7);
+        return url;
+    }
 }
