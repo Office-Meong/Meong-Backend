@@ -102,11 +102,11 @@ public class KtoPlaceCollectTasklet implements Tasklet {
                     }
                     place = placeRepository.save(place);
 
-                    // 썸네일 이미지
+                    // 썸네일 이미지 (Android cleartext 차단 방지: http → https 변환)
                     if (hasValue(item.getFirstimage())) {
                         placeImageRepository.deleteByPlaceId(place.getId());
                         placeImageRepository.save(PlaceImage.builder()
-                                .place(place).imageUrl(item.getFirstimage())
+                                .place(place).imageUrl(toHttps(item.getFirstimage()))
                                 .isThumbnail(true).displayOrder(0).build());
                     }
 
@@ -207,4 +207,9 @@ public class KtoPlaceCollectTasklet implements Tasklet {
     }
 
     private boolean hasValue(String s) { return s != null && !s.isBlank(); }
+
+    private String toHttps(String url) {
+        if (url != null && url.startsWith("http://")) return "https://" + url.substring(7);
+        return url;
+    }
 }

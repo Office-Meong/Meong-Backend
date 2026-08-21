@@ -56,6 +56,8 @@ public class S3UploadService {
         return UploadPresignedResponse.builder()
                 .presignedUrl(presigned.url().toString())
                 .imageUrl(imageUrl)
+                .method("PUT")
+                .contentType(contentType)
                 .build();
     }
 
