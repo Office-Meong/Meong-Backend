@@ -15,8 +15,7 @@ public class KakaoLoginRequest {
     @NotBlank(message = "인가 코드는 필수입니다.")
     private String code;
 
-    @Schema(description = "인가코드 발급 시 사용한 client_id (플랫폼별 상이). Android: 네이티브 앱 키, 웹: REST API 키", example = "014f0b58da4749b59745aca73a0e623f")
-    @NotBlank(message = "client_id는 필수입니다.")
+    @Schema(description = "인가코드 발급 시 사용한 client_id. 생략 시 서버 기본값(네이티브 앱 키) 사용. 브라우저 테스트 시 REST API 키를 명시적으로 전달.", example = "014f0b58da4749b59745aca73a0e623f")
     private String clientId;
 
     @Schema(description = "인가코드 발급 시 사용한 redirect_uri (플랫폼별 상이). Android: kakao{appKey}://oauth, 웹: http://...", example = "kakao014f0b58da4749b59745aca73a0e623f://oauth")

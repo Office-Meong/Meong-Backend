@@ -19,6 +19,9 @@ public class KakaoOAuthClient {
     private final WebClient authClient;
     private final WebClient apiClient;
 
+    @Value("${kakao.client-id}")
+    private String defaultClientId;
+
     // 카카오 개발자 콘솔 > 카카오 로그인 > 보안 탭에서 Client Secret을 활성화한 경우에만 필요
     @Value("${kakao.client-secret:}")
     private String clientSecret;
@@ -33,9 +36,10 @@ public class KakaoOAuthClient {
     }
 
     public KakaoTokenResponse getToken(String authorizationCode, String clientId, String redirectUri) {
+        String resolvedClientId = (clientId != null && !clientId.isBlank()) ? clientId : defaultClientId;
         MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
         params.add("grant_type", "authorization_code");
-        params.add("client_id", clientId);
+        params.add("client_id", resolvedClientId);
         params.add("redirect_uri", redirectUri);
         params.add("code", authorizationCode);
         if (clientSecret != null && !clientSecret.isBlank()) {
