@@ -20,8 +20,8 @@ public class AuthService {
     private final JwtProvider jwtProvider;
 
     @Transactional
-    public TokenResponse kakaoLogin(String authorizationCode, String redirectUri, Boolean termsAgreed, Boolean privacyAgreed) {
-        KakaoTokenResponse kakaoToken = kakaoClient.getToken(authorizationCode, redirectUri);
+    public TokenResponse kakaoLogin(String authorizationCode, String clientId, String redirectUri, Boolean termsAgreed, Boolean privacyAgreed) {
+        KakaoTokenResponse kakaoToken = kakaoClient.getToken(authorizationCode, clientId, redirectUri);
         KakaoUserInfoResponse userInfo = kakaoClient.getUserInfo(kakaoToken.getAccessToken());
 
         User user = userRepository.findByKakaoId(userInfo.getId())

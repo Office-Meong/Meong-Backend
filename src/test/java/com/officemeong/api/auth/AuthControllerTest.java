@@ -40,11 +40,11 @@ class AuthControllerTest {
     @DisplayName("카카오 로그인 - 200 OK")
     void kakaoLogin_200_반환() throws Exception {
         TokenResponse tokenResponse = TokenResponse.of("access-token", "refresh-token", 1800L);
-        when(authService.kakaoLogin("auth-code", "kakao1234567890://oauth", true, true)).thenReturn(tokenResponse);
+        when(authService.kakaoLogin("auth-code", "014f0b58da4749b59745aca73a0e623f", "kakao014f0b58da4749b59745aca73a0e623f://oauth", true, true)).thenReturn(tokenResponse);
 
         mockMvc.perform(post("/api/v1/auth/kakao")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"code\": \"auth-code\", \"redirectUri\": \"kakao1234567890://oauth\", \"termsAgreed\": true, \"privacyAgreed\": true}"))
+                        .content("{\"code\": \"auth-code\", \"clientId\": \"014f0b58da4749b59745aca73a0e623f\", \"redirectUri\": \"kakao014f0b58da4749b59745aca73a0e623f://oauth\", \"termsAgreed\": true, \"privacyAgreed\": true}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.accessToken").value("access-token"))
