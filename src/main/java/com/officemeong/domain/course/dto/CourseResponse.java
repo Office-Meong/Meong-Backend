@@ -1,17 +1,24 @@
 package com.officemeong.domain.course.dto;
 
 import com.officemeong.domain.course.entity.Course;
+import com.officemeong.domain.course.entity.CourseItem;
 import com.officemeong.domain.course.enums.WorkFocusLevel;
+import com.officemeong.domain.place.entity.Place;
+import com.officemeong.domain.place.enums.PlaceType;
 import com.officemeong.domain.place.enums.Region;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
 import lombok.Getter;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.stream.Collectors;
 
 @Schema(description = "워케이션 코스 응답")
@@ -49,6 +56,9 @@ public class CourseResponse {
     @Schema(description = "일별 코스 아이템 목록 (키: 1일차, 2일차, ...)")
     private Map<Integer, List<CourseItemResponse>> dayItems;
 
+    @Schema(description = "일차별 마지막 일정 → 숙소 복귀 거리(km). 숙소가 없는 1박 미만 코스는 빈 맵. 키: 일차(1,2,...)")
+    private Map<Integer, BigDecimal> dayReturnToAccommKm;
+
     @Schema(description = "코스 생성 시각")
     private LocalDateTime createdAt;
 
@@ -59,6 +69,8 @@ public class CourseResponse {
 
         int totalDays = (int) course.getStartDate().until(course.getEndDate(),
                 java.time.temporal.ChronoUnit.DAYS) + 1;
+
+        Map<Integer, BigDecimal> returnDistances = calcReturnDistances(course);
 
         return CourseResponse.builder()
                 .id(course.getId())
@@ -71,7 +83,51 @@ public class CourseResponse {
                 .workFocusLevel(course.getWorkFocusLevel())
                 .totalDays(totalDays)
                 .dayItems(dayItems)
+                .dayReturnToAccommKm(returnDistances)
                 .createdAt(course.getCreatedAt())
                 .build();
+    }
+
+    private static Map<Integer, BigDecimal> calcReturnDistances(Course course) {
+        // 코스 내 숙소 아이템 찾기 (Day 1의 STAY 슬롯)
+        Place stayPlace = course.getItems().stream()
+                .filter(i -> i.getPlace().getPlaceType() == PlaceType.STAY)
+                .map(CourseItem::getPlace)
+                .findFirst()
+                .orElse(null);
+
+        if (stayPlace == null || stayPlace.getLatitude() == null || stayPlace.getLongitude() == null) {
+            return Map.of();
+        }
+
+        Map<Integer, List<CourseItem>> byDay = course.getItems().stream()
+                .collect(Collectors.groupingBy(CourseItem::getDayNumber));
+
+        Map<Integer, BigDecimal> result = new TreeMap<>();
+        byDay.forEach((day, items) -> {
+            // 해당 날의 마지막 아이템 (STAY 제외 — Day 1의 체크인 슬롯이 first이므로 last는 항상 활동)
+            items.stream()
+                    .filter(i -> i.getPlace().getPlaceType() != PlaceType.STAY)
+                    .max(Comparator.comparingInt(CourseItem::getVisitOrder))
+                    .ifPresent(last -> {
+                        Place lastPlace = last.getPlace();
+                        if (lastPlace.getLatitude() == null || lastPlace.getLongitude() == null) return;
+                        double km = haversineKm(
+                                lastPlace.getLatitude().doubleValue(), lastPlace.getLongitude().doubleValue(),
+                                stayPlace.getLatitude().doubleValue(), stayPlace.getLongitude().doubleValue());
+                        result.put(day, BigDecimal.valueOf(km).setScale(2, RoundingMode.HALF_UP));
+                    });
+        });
+        return result;
+    }
+
+    private static double haversineKm(double lat1, double lng1, double lat2, double lng2) {
+        final double R = 6371.0;
+        double dLat = Math.toRadians(lat2 - lat1);
+        double dLng = Math.toRadians(lng2 - lng1);
+        double a = Math.sin(dLat / 2) * Math.sin(dLat / 2)
+                + Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2))
+                * Math.sin(dLng / 2) * Math.sin(dLng / 2);
+        return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     }
 }
