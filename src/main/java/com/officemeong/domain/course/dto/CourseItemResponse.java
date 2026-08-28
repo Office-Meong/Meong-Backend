@@ -2,6 +2,7 @@ package com.officemeong.domain.course.dto;
 
 import com.officemeong.domain.course.entity.CourseItem;
 import com.officemeong.domain.place.entity.PlaceImage;
+import com.officemeong.domain.place.enums.Grade;
 import com.officemeong.domain.place.enums.LodgingType;
 import com.officemeong.domain.place.enums.PlaceType;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -64,6 +65,9 @@ public class CourseItemResponse {
             example = "PENSION")
     private LodgingType lodgingType;
 
+    @Schema(description = "장소 등급 (A~E, 데이터 없으면 null). A=최상(75+), B=상(60+), C=중(45+), D=하(30+), E=최하", example = "A")
+    private Grade grade;
+
     public static CourseItemResponse from(CourseItem item) {
         var place = item.getPlace();
         String thumbnail = place.getImages().stream()
@@ -89,6 +93,7 @@ public class CourseItemResponse {
                 .distanceFromPrevKm(item.getDistanceFromPrevKm())
                 .thumbnailUrl(thumbnail)
                 .lodgingType(place.getOperation() != null ? place.getOperation().getLodgingType() : null)
+                .grade(place.getScore() != null ? place.getScore().getGrade() : null)
                 .build();
     }
 }
