@@ -65,7 +65,7 @@ public class CourseItemResponse {
             example = "PENSION")
     private LodgingType lodgingType;
 
-    @Schema(description = "장소 등급 (A~E, 데이터 없으면 null). A=최상(75+), B=상(60+), C=중(45+), D=하(30+), E=최하", example = "A")
+    @Schema(description = "장소 등급 (A~E, 데이터 없으면 null). A=최상(68+), B=상(60+), C=중(45+), D=하(30+), E=최하", example = "A")
     private Grade grade;
 
     public static CourseItemResponse from(CourseItem item) {
