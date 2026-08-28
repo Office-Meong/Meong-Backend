@@ -231,6 +231,7 @@ public class CourseService {
         course.addItem(newItem);
 
         resequence(dayItems);
+        courseItemRepository.save(newItem); // IDENTITY 전략: 즉시 INSERT → id 확정 후 직렬화
 
         return CourseResponse.from(course);
     }
