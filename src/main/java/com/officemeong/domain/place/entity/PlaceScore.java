@@ -80,8 +80,12 @@ public class PlaceScore {
     public void recalculate() {
         this.totalScore = petCompanionScore + workcationScore + walkAccessibilityScore
                 + congestionScore + emergencyScore + accessibilityScore;
-        this.grade = Grade.from(this.totalScore);
         this.calculatedAt = LocalDateTime.now();
+        // grade는 ScoreCalculateTasklet에서 PlaceType별 퍼센타일 기반으로 일괄 배분
+    }
+
+    public void updateGrade(Grade grade) {
+        this.grade = grade;
     }
 
     public void updateCongestionScore(int score) {

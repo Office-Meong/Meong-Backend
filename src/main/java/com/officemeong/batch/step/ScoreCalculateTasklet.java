@@ -6,6 +6,7 @@ import com.officemeong.domain.place.entity.PlaceOperation;
 import com.officemeong.domain.place.entity.PlacePetCondition;
 import com.officemeong.domain.place.entity.PlaceScore;
 import com.officemeong.domain.place.enums.AcmpyType;
+import com.officemeong.domain.place.enums.Grade;
 import com.officemeong.domain.place.enums.PlaceType;
 import com.officemeong.domain.place.enums.Region;
 import com.officemeong.domain.place.repository.PlaceRepository;
@@ -21,8 +22,10 @@ import org.springframework.batch.repeat.RepeatStatus;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Component
@@ -68,7 +71,43 @@ public class ScoreCalculateTasklet implements Tasklet {
         }
 
         log.info("점수 계산 완료 - {}개", calculated);
+
+        // PlaceType별 퍼센타일 기반 등급 배분 (A=상위20%, B=다음20%, C=중간20%, D=다음20%, E=하위20%)
+        assignPercentileGrades(places);
+
         return RepeatStatus.FINISHED;
+    }
+
+    private void assignPercentileGrades(List<Place> places) {
+        Map<PlaceType, List<PlaceScore>> byType = places.stream()
+                .filter(p -> p.getScore() != null)
+                .collect(Collectors.groupingBy(
+                        Place::getPlaceType,
+                        Collectors.mapping(Place::getScore, Collectors.toList())
+                ));
+
+        byType.forEach((type, scores) -> {
+            scores.sort(Comparator.comparingInt(PlaceScore::getTotalScore));
+            int n = scores.size();
+            for (int i = 0; i < n; i++) {
+                double pct = (double) i / n;
+                Grade grade;
+                if      (pct >= 0.80) grade = Grade.A;
+                else if (pct >= 0.60) grade = Grade.B;
+                else if (pct >= 0.40) grade = Grade.C;
+                else if (pct >= 0.20) grade = Grade.D;
+                else                  grade = Grade.E;
+                scores.get(i).updateGrade(grade);
+            }
+            scoreRepository.saveAll(scores);
+            log.info("등급 배분 - {} {}개: A={}, B={}, C={}, D={}, E={}",
+                    type, n,
+                    scores.stream().filter(s -> s.getGrade() == Grade.A).count(),
+                    scores.stream().filter(s -> s.getGrade() == Grade.B).count(),
+                    scores.stream().filter(s -> s.getGrade() == Grade.C).count(),
+                    scores.stream().filter(s -> s.getGrade() == Grade.D).count(),
+                    scores.stream().filter(s -> s.getGrade() == Grade.E).count());
+        });
     }
 
     /**
