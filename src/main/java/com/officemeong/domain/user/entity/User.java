@@ -71,6 +71,17 @@ public class User extends BaseTimeEntity {
         this.refreshToken = null;
     }
 
+    public void restore(String nickname, String profileImageUrl, String email,
+                        Boolean termsAgreed, Boolean privacyAgreed) {
+        this.nickname = nickname != null ? nickname : "사용자";
+        this.profileImageUrl = profileImageUrl;
+        this.email = email;
+        this.termsAgreed = Boolean.TRUE.equals(termsAgreed);
+        this.privacyAgreed = Boolean.TRUE.equals(privacyAgreed);
+        this.deletedAt = null;
+        this.refreshToken = null;
+    }
+
     public boolean isDeleted() {
         return deletedAt != null;
     }

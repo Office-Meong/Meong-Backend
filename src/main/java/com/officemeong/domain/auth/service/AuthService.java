@@ -24,23 +24,28 @@ public class AuthService {
         KakaoTokenResponse kakaoToken = kakaoClient.getToken(authorizationCode, clientId, redirectUri);
         KakaoUserInfoResponse userInfo = kakaoClient.getUserInfo(kakaoToken.getAccessToken());
 
-        User user = userRepository.findByKakaoId(userInfo.getId())
-                .orElseGet(() -> {
-                    if (!Boolean.TRUE.equals(termsAgreed) || !Boolean.TRUE.equals(privacyAgreed)) {
-                        throw new IllegalArgumentException("서비스 이용약관 및 개인정보 처리방침에 동의해야 합니다.");
-                    }
-                    return userRepository.save(User.builder()
-                            .kakaoId(userInfo.getId())
-                            .nickname(userInfo.getNickname() != null ? userInfo.getNickname() : "사용자")
-                            .profileImageUrl(userInfo.getProfileImageUrl())
-                            .email(userInfo.getEmail())
-                            .termsAgreed(termsAgreed)
-                            .privacyAgreed(privacyAgreed)
-                            .build());
-                });
+        User user = userRepository.findByKakaoId(userInfo.getId()).orElse(null);
 
-        if (user.isDeleted()) {
-            throw new IllegalStateException("탈퇴한 사용자입니다.");
+        if (user == null) {
+            // 신규 가입
+            if (!Boolean.TRUE.equals(termsAgreed) || !Boolean.TRUE.equals(privacyAgreed)) {
+                throw new IllegalArgumentException("서비스 이용약관 및 개인정보 처리방침에 동의해야 합니다.");
+            }
+            user = userRepository.save(User.builder()
+                    .kakaoId(userInfo.getId())
+                    .nickname(userInfo.getNickname() != null ? userInfo.getNickname() : "사용자")
+                    .profileImageUrl(userInfo.getProfileImageUrl())
+                    .email(userInfo.getEmail())
+                    .termsAgreed(termsAgreed)
+                    .privacyAgreed(privacyAgreed)
+                    .build());
+        } else if (user.isDeleted()) {
+            // 재가입: 약관 동의 확인 후 계정 복원
+            if (!Boolean.TRUE.equals(termsAgreed) || !Boolean.TRUE.equals(privacyAgreed)) {
+                throw new IllegalArgumentException("서비스 이용약관 및 개인정보 처리방침에 동의해야 합니다.");
+            }
+            user.restore(userInfo.getNickname(), userInfo.getProfileImageUrl(),
+                    userInfo.getEmail(), termsAgreed, privacyAgreed);
         }
 
         return issueTokens(user);
