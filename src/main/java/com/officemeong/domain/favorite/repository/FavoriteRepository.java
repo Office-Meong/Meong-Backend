@@ -28,4 +28,6 @@ public interface FavoriteRepository extends JpaRepository<Favorite, Long> {
 
     @Query("SELECT f.place.id FROM Favorite f WHERE f.user.id = :userId AND f.place.id IN :placeIds")
     List<Long> findFavoritedPlaceIds(@Param("userId") Long userId, @Param("placeIds") List<Long> placeIds);
+
+    void deleteByUserId(Long userId);
 }

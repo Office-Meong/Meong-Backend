@@ -1,5 +1,10 @@
 package com.officemeong.domain.user.service;
 
+import com.officemeong.domain.course.repository.CourseChecklistItemRepository;
+import com.officemeong.domain.course.repository.CourseRepository;
+import com.officemeong.domain.dog.repository.DogRepository;
+import com.officemeong.domain.favorite.repository.FavoriteRepository;
+import com.officemeong.domain.review.repository.ReviewRepository;
 import com.officemeong.domain.user.dto.UserResponse;
 import com.officemeong.domain.user.dto.UserUpdateRequest;
 import com.officemeong.domain.user.entity.User;
@@ -23,6 +28,11 @@ import static org.mockito.Mockito.*;
 class UserServiceTest {
 
     @Mock UserRepository userRepository;
+    @Mock CourseChecklistItemRepository courseChecklistItemRepository;
+    @Mock CourseRepository courseRepository;
+    @Mock FavoriteRepository favoriteRepository;
+    @Mock ReviewRepository reviewRepository;
+    @Mock DogRepository dogRepository;
 
     @InjectMocks UserService userService;
 
@@ -78,13 +88,18 @@ class UserServiceTest {
     }
 
     @Test
-    @DisplayName("회원 탈퇴 시 deletedAt 설정")
-    void deleteMe_삭제_처리() {
+    @DisplayName("회원 탈퇴 시 연관 데이터 모두 삭제 후 soft-delete")
+    void deleteMe_연관_데이터_삭제_및_soft_delete() {
         User user = User.builder().kakaoId(123L).nickname("유저").build();
         when(userRepository.findById(1L)).thenReturn(Optional.of(user));
 
         userService.deleteMe(1L);
 
+        verify(courseChecklistItemRepository).deleteByUserId(1L);
+        verify(courseRepository).deleteByUserId(1L);
+        verify(favoriteRepository).deleteByUserId(1L);
+        verify(reviewRepository).deleteByUserId(1L);
+        verify(dogRepository).deleteByUserId(1L);
         assertThat(user.isDeleted()).isTrue();
         assertThat(user.getRefreshToken()).isNull();
     }

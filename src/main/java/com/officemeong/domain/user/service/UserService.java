@@ -1,5 +1,10 @@
 package com.officemeong.domain.user.service;
 
+import com.officemeong.domain.course.repository.CourseChecklistItemRepository;
+import com.officemeong.domain.course.repository.CourseRepository;
+import com.officemeong.domain.dog.repository.DogRepository;
+import com.officemeong.domain.favorite.repository.FavoriteRepository;
+import com.officemeong.domain.review.repository.ReviewRepository;
 import com.officemeong.domain.user.dto.UserResponse;
 import com.officemeong.domain.user.dto.UserUpdateRequest;
 import com.officemeong.domain.user.entity.User;
@@ -16,6 +21,11 @@ import java.util.NoSuchElementException;
 public class UserService {
 
     private final UserRepository userRepository;
+    private final CourseChecklistItemRepository courseChecklistItemRepository;
+    private final CourseRepository courseRepository;
+    private final FavoriteRepository favoriteRepository;
+    private final ReviewRepository reviewRepository;
+    private final DogRepository dogRepository;
 
     public UserResponse getMe(Long userId) {
         User user = findUser(userId);
@@ -32,6 +42,11 @@ public class UserService {
     @Transactional
     public void deleteMe(Long userId) {
         User user = findUser(userId);
+        courseChecklistItemRepository.deleteByUserId(userId);
+        courseRepository.deleteByUserId(userId);
+        favoriteRepository.deleteByUserId(userId);
+        reviewRepository.deleteByUserId(userId);
+        dogRepository.deleteByUserId(userId);
         user.delete();
     }
 
