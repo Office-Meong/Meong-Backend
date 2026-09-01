@@ -4,6 +4,7 @@ import com.officemeong.common.security.JwtProvider;
 import com.officemeong.domain.auth.dto.TokenResponse;
 import com.officemeong.domain.user.entity.User;
 import com.officemeong.domain.user.repository.UserRepository;
+import com.officemeong.domain.user.service.UserService;
 import com.officemeong.infrastructure.kakao.KakaoOAuthClient;
 import com.officemeong.infrastructure.kakao.dto.KakaoTokenResponse;
 import com.officemeong.infrastructure.kakao.dto.KakaoUserInfoResponse;
@@ -17,6 +18,7 @@ public class AuthService {
 
     private final KakaoOAuthClient kakaoClient;
     private final UserRepository userRepository;
+    private final UserService userService;
     private final JwtProvider jwtProvider;
 
     @Transactional
@@ -40,12 +42,20 @@ public class AuthService {
                     .privacyAgreed(privacyAgreed)
                     .build());
         } else if (user.isDeleted()) {
-            // 재가입: 약관 동의 확인 후 계정 복원
+            // 재가입: 기존 데이터 완전 삭제 후 신규 회원으로 생성
             if (!Boolean.TRUE.equals(termsAgreed) || !Boolean.TRUE.equals(privacyAgreed)) {
                 throw new IllegalArgumentException("서비스 이용약관 및 개인정보 처리방침에 동의해야 합니다.");
             }
-            user.restore(userInfo.getNickname(), userInfo.getProfileImageUrl(),
-                    userInfo.getEmail(), termsAgreed, privacyAgreed);
+            userService.purgeDeletedUser(user.getId());
+            userRepository.flush();
+            user = userRepository.save(User.builder()
+                    .kakaoId(userInfo.getId())
+                    .nickname(userInfo.getNickname() != null ? userInfo.getNickname() : "사용자")
+                    .profileImageUrl(userInfo.getProfileImageUrl())
+                    .email(userInfo.getEmail())
+                    .termsAgreed(termsAgreed)
+                    .privacyAgreed(privacyAgreed)
+                    .build());
         }
 
         return issueTokens(user);

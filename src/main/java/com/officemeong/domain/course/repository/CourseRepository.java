@@ -2,6 +2,7 @@ package com.officemeong.domain.course.repository;
 
 import com.officemeong.domain.course.entity.Course;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -21,5 +22,7 @@ public interface CourseRepository extends JpaRepository<Course, Long> {
 
     List<Course> findByUserIdOrderByCreatedAtDesc(Long userId);
 
-    void deleteByUserId(Long userId);
+    @Modifying
+    @Query("DELETE FROM Course c WHERE c.user.id = :userId")
+    void deleteByUserId(@Param("userId") Long userId);
 }

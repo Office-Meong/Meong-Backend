@@ -2,6 +2,7 @@ package com.officemeong.domain.review.repository;
 
 import com.officemeong.domain.review.entity.Review;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -20,5 +21,7 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
     @Query("SELECT r FROM Review r JOIN FETCH r.place WHERE r.user.id = :userId ORDER BY r.createdAt DESC")
     List<Review> findByUserIdWithPlace(@Param("userId") Long userId);
 
-    void deleteByUserId(Long userId);
+    @Modifying
+    @Query("DELETE FROM Review r WHERE r.user.id = :userId")
+    void deleteByUserId(@Param("userId") Long userId);
 }

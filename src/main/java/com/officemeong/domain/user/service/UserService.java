@@ -50,6 +50,16 @@ public class UserService {
         user.delete();
     }
 
+    @Transactional
+    public void purgeDeletedUser(Long userId) {
+        courseChecklistItemRepository.deleteByUserId(userId);
+        courseRepository.deleteByUserId(userId);
+        favoriteRepository.deleteByUserId(userId);
+        reviewRepository.deleteByUserId(userId);
+        dogRepository.deleteByUserId(userId);
+        userRepository.deleteById(userId);
+    }
+
     private User findUser(Long userId) {
         return userRepository.findById(userId)
                 .filter(u -> !u.isDeleted())

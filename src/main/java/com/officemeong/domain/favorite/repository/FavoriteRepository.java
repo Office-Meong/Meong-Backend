@@ -2,6 +2,7 @@ package com.officemeong.domain.favorite.repository;
 
 import com.officemeong.domain.favorite.entity.Favorite;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -29,5 +30,7 @@ public interface FavoriteRepository extends JpaRepository<Favorite, Long> {
     @Query("SELECT f.place.id FROM Favorite f WHERE f.user.id = :userId AND f.place.id IN :placeIds")
     List<Long> findFavoritedPlaceIds(@Param("userId") Long userId, @Param("placeIds") List<Long> placeIds);
 
-    void deleteByUserId(Long userId);
+    @Modifying
+    @Query("DELETE FROM Favorite f WHERE f.user.id = :userId")
+    void deleteByUserId(@Param("userId") Long userId);
 }

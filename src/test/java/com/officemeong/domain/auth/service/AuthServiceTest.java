@@ -4,6 +4,7 @@ import com.officemeong.common.security.JwtProvider;
 import com.officemeong.domain.auth.dto.TokenResponse;
 import com.officemeong.domain.user.entity.User;
 import com.officemeong.domain.user.repository.UserRepository;
+import com.officemeong.domain.user.service.UserService;
 import com.officemeong.infrastructure.kakao.KakaoOAuthClient;
 import com.officemeong.infrastructure.kakao.dto.KakaoTokenResponse;
 import com.officemeong.infrastructure.kakao.dto.KakaoUserInfoResponse;
@@ -27,6 +28,7 @@ class AuthServiceTest {
 
     @Mock KakaoOAuthClient kakaoClient;
     @Mock UserRepository userRepository;
+    @Mock UserService userService;
     @Mock JwtProvider jwtProvider;
 
     @InjectMocks AuthService authService;
@@ -141,11 +143,12 @@ class AuthServiceTest {
     }
 
     @Test
-    @DisplayName("탈퇴한 사용자가 약관 동의 시 재가입(계정 복원) 후 토큰 발급")
+    @DisplayName("탈퇴한 사용자가 약관 동의 시 재가입(신규 회원 생성) 후 토큰 발급")
     void kakaoLogin_탈퇴_사용자_재가입_성공() {
         KakaoTokenResponse kakaoToken = mock(KakaoTokenResponse.class);
         KakaoUserInfoResponse userInfo = mock(KakaoUserInfoResponse.class);
         User deletedUser = mock(User.class);
+        User newUser = mockUser(2L);
         when(deletedUser.isDeleted()).thenReturn(true);
         when(deletedUser.getId()).thenReturn(1L);
 
@@ -155,15 +158,17 @@ class AuthServiceTest {
         when(userInfo.getId()).thenReturn(123456L);
         when(userInfo.getNickname()).thenReturn("테스트유저");
         when(userRepository.findByKakaoId(123456L)).thenReturn(Optional.of(deletedUser));
-        when(userRepository.save(deletedUser)).thenReturn(deletedUser);
-        when(jwtProvider.createAccessToken(1L)).thenReturn("access-token");
-        when(jwtProvider.createRefreshToken(1L)).thenReturn("refresh-token");
+        when(userRepository.save(any(User.class))).thenReturn(newUser);
+        when(jwtProvider.createAccessToken(2L)).thenReturn("access-token");
+        when(jwtProvider.createRefreshToken(2L)).thenReturn("refresh-token");
         when(jwtProvider.getAccessTokenExpirySeconds()).thenReturn(1800L);
 
         TokenResponse response = authService.kakaoLogin("auth-code", null, "kakao1234://oauth", true, true);
 
         assertThat(response.getAccessToken()).isEqualTo("access-token");
-        verify(deletedUser).restore(any(), any(), any(), eq(true), eq(true));
+        verify(userService).purgeDeletedUser(1L);
+        verify(userRepository, atLeast(1)).save(any(User.class));
+        verify(deletedUser, never()).restore(any(), any(), any(), any(), any());
     }
 
     @Test

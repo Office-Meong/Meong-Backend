@@ -103,4 +103,17 @@ class UserServiceTest {
         assertThat(user.isDeleted()).isTrue();
         assertThat(user.getRefreshToken()).isNull();
     }
+
+    @Test
+    @DisplayName("탈퇴 계정 재가입 시 연관 데이터 및 유저 레코드 완전 삭제")
+    void purgeDeletedUser_연관_데이터_및_유저_레코드_삭제() {
+        userService.purgeDeletedUser(1L);
+
+        verify(courseChecklistItemRepository).deleteByUserId(1L);
+        verify(courseRepository).deleteByUserId(1L);
+        verify(favoriteRepository).deleteByUserId(1L);
+        verify(reviewRepository).deleteByUserId(1L);
+        verify(dogRepository).deleteByUserId(1L);
+        verify(userRepository).deleteById(1L);
+    }
 }
