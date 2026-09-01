@@ -141,8 +141,34 @@ class AuthServiceTest {
     }
 
     @Test
-    @DisplayName("탈퇴한 사용자는 로그인 불가")
-    void kakaoLogin_탈퇴_사용자_예외_발생() {
+    @DisplayName("탈퇴한 사용자가 약관 동의 시 재가입(계정 복원) 후 토큰 발급")
+    void kakaoLogin_탈퇴_사용자_재가입_성공() {
+        KakaoTokenResponse kakaoToken = mock(KakaoTokenResponse.class);
+        KakaoUserInfoResponse userInfo = mock(KakaoUserInfoResponse.class);
+        User deletedUser = mock(User.class);
+        when(deletedUser.isDeleted()).thenReturn(true);
+        when(deletedUser.getId()).thenReturn(1L);
+
+        when(kakaoClient.getToken("auth-code", null, "kakao1234://oauth")).thenReturn(kakaoToken);
+        when(kakaoToken.getAccessToken()).thenReturn("kakao-access-token");
+        when(kakaoClient.getUserInfo("kakao-access-token")).thenReturn(userInfo);
+        when(userInfo.getId()).thenReturn(123456L);
+        when(userInfo.getNickname()).thenReturn("테스트유저");
+        when(userRepository.findByKakaoId(123456L)).thenReturn(Optional.of(deletedUser));
+        when(userRepository.save(deletedUser)).thenReturn(deletedUser);
+        when(jwtProvider.createAccessToken(1L)).thenReturn("access-token");
+        when(jwtProvider.createRefreshToken(1L)).thenReturn("refresh-token");
+        when(jwtProvider.getAccessTokenExpirySeconds()).thenReturn(1800L);
+
+        TokenResponse response = authService.kakaoLogin("auth-code", null, "kakao1234://oauth", true, true);
+
+        assertThat(response.getAccessToken()).isEqualTo("access-token");
+        verify(deletedUser).restore(any(), any(), any(), eq(true), eq(true));
+    }
+
+    @Test
+    @DisplayName("탈퇴한 사용자가 약관 미동의 시 재가입 불가")
+    void kakaoLogin_탈퇴_사용자_약관_미동의_예외() {
         KakaoTokenResponse kakaoToken = mock(KakaoTokenResponse.class);
         KakaoUserInfoResponse userInfo = mock(KakaoUserInfoResponse.class);
         User deletedUser = mock(User.class);
@@ -154,9 +180,9 @@ class AuthServiceTest {
         when(userInfo.getId()).thenReturn(123456L);
         when(userRepository.findByKakaoId(123456L)).thenReturn(Optional.of(deletedUser));
 
-        assertThatThrownBy(() -> authService.kakaoLogin("auth-code", null, "kakao1234://oauth", null, null))
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("탈퇴한 사용자");
+        assertThatThrownBy(() -> authService.kakaoLogin("auth-code", null, "kakao1234://oauth", false, true))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("동의");
     }
 
     @Test
@@ -179,7 +205,7 @@ class AuthServiceTest {
     private User mockUser(Long id) {
         User user = mock(User.class);
         lenient().when(user.getId()).thenReturn(id);
-        when(user.isDeleted()).thenReturn(false);
+        lenient().when(user.isDeleted()).thenReturn(false);
         return user;
     }
 }
