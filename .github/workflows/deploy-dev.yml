@@ -78,5 +78,9 @@ jobs:
               --restart always \
               $DOCKER_IMAGE
 
-            # 사용하지 않는 이미지 정리
+            # 오래된 이미지 정리 (최근 2개만 유지: 현재 + 롤백용 1개)
+            docker images dietken1/officemeong --format "{{.ID}}" \
+              | awk '!seen[$0]++' \
+              | tail -n +3 \
+              | xargs -r docker rmi -f || true
             docker image prune -f
