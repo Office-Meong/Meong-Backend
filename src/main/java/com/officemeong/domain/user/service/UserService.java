@@ -1,6 +1,7 @@
 package com.officemeong.domain.user.service;
 
 import com.officemeong.domain.course.repository.CourseChecklistItemRepository;
+import com.officemeong.domain.course.repository.CourseItemRepository;
 import com.officemeong.domain.course.repository.CourseRepository;
 import com.officemeong.domain.dog.repository.DogRepository;
 import com.officemeong.domain.favorite.repository.FavoriteRepository;
@@ -22,6 +23,7 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final CourseChecklistItemRepository courseChecklistItemRepository;
+    private final CourseItemRepository courseItemRepository;
     private final CourseRepository courseRepository;
     private final FavoriteRepository favoriteRepository;
     private final ReviewRepository reviewRepository;
@@ -43,6 +45,7 @@ public class UserService {
     public void deleteMe(Long userId) {
         User user = findUser(userId);
         courseChecklistItemRepository.deleteByUserId(userId);
+        courseItemRepository.deleteByUserId(userId);
         courseRepository.deleteByUserId(userId);
         favoriteRepository.deleteByUserId(userId);
         reviewRepository.deleteByUserId(userId);
@@ -53,6 +56,7 @@ public class UserService {
     @Transactional
     public void purgeDeletedUser(Long userId) {
         courseChecklistItemRepository.deleteByUserId(userId);
+        courseItemRepository.deleteByUserId(userId);
         courseRepository.deleteByUserId(userId);
         favoriteRepository.deleteByUserId(userId);
         reviewRepository.deleteByUserId(userId);

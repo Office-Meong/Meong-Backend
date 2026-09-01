@@ -1,6 +1,7 @@
 package com.officemeong.domain.user.service;
 
 import com.officemeong.domain.course.repository.CourseChecklistItemRepository;
+import com.officemeong.domain.course.repository.CourseItemRepository;
 import com.officemeong.domain.course.repository.CourseRepository;
 import com.officemeong.domain.dog.repository.DogRepository;
 import com.officemeong.domain.favorite.repository.FavoriteRepository;
@@ -29,6 +30,7 @@ class UserServiceTest {
 
     @Mock UserRepository userRepository;
     @Mock CourseChecklistItemRepository courseChecklistItemRepository;
+    @Mock CourseItemRepository courseItemRepository;
     @Mock CourseRepository courseRepository;
     @Mock FavoriteRepository favoriteRepository;
     @Mock ReviewRepository reviewRepository;
@@ -96,6 +98,7 @@ class UserServiceTest {
         userService.deleteMe(1L);
 
         verify(courseChecklistItemRepository).deleteByUserId(1L);
+        verify(courseItemRepository).deleteByUserId(1L);
         verify(courseRepository).deleteByUserId(1L);
         verify(favoriteRepository).deleteByUserId(1L);
         verify(reviewRepository).deleteByUserId(1L);
@@ -110,6 +113,7 @@ class UserServiceTest {
         userService.purgeDeletedUser(1L);
 
         verify(courseChecklistItemRepository).deleteByUserId(1L);
+        verify(courseItemRepository).deleteByUserId(1L);
         verify(courseRepository).deleteByUserId(1L);
         verify(favoriteRepository).deleteByUserId(1L);
         verify(reviewRepository).deleteByUserId(1L);
