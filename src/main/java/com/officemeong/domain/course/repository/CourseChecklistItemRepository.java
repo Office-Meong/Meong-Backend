@@ -14,7 +14,7 @@ public interface CourseChecklistItemRepository extends JpaRepository<CourseCheck
 
     int countByCourseId(Long courseId);
 
-    @Modifying
+    @Modifying(clearAutomatically = true)
     @Query("DELETE FROM CourseChecklistItem c WHERE c.course.user.id = :userId")
     void deleteByUserId(@Param("userId") Long userId);
 }

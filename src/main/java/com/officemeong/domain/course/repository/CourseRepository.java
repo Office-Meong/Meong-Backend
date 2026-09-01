@@ -22,7 +22,7 @@ public interface CourseRepository extends JpaRepository<Course, Long> {
 
     List<Course> findByUserIdOrderByCreatedAtDesc(Long userId);
 
-    @Modifying
+    @Modifying(clearAutomatically = true)
     @Query("DELETE FROM Course c WHERE c.user.id = :userId")
     void deleteByUserId(@Param("userId") Long userId);
 }

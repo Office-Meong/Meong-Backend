@@ -21,7 +21,7 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
     @Query("SELECT r FROM Review r JOIN FETCH r.place WHERE r.user.id = :userId ORDER BY r.createdAt DESC")
     List<Review> findByUserIdWithPlace(@Param("userId") Long userId);
 
-    @Modifying
+    @Modifying(clearAutomatically = true)
     @Query("DELETE FROM Review r WHERE r.user.id = :userId")
     void deleteByUserId(@Param("userId") Long userId);
 }
